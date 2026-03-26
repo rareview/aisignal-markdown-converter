@@ -30,10 +30,13 @@ class WpHtmlApiMarkdownEngine {
 			return '';
 		}
 
+		$preprocessor      = new WpHtmlApiHtmlPreprocessor();
+		$html              = $preprocessor->prepare( $html );
 		$options           = new WpHtmlApiRendererOptions();
 		$options->base_url = $base_url ?: null;
 		$renderer          = new WpHtmlApiRenderer( $html, $options );
+		$markdown          = trim( $renderer->to_markdown() );
 
-		return trim( $renderer->to_markdown() );
+		return $preprocessor->restore( $markdown );
 	}
 }

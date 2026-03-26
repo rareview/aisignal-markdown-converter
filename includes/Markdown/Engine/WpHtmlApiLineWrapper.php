@@ -18,6 +18,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WpHtmlApiLineWrapper {
 
 	/**
+	 * Marker inserted before protected inline spans.
+	 *
+	 * @var string
+	 */
+	public const START_MARKER = "\u{E0001}";
+
+	/**
+	 * Marker inserted after protected inline spans.
+	 *
+	 * @var string
+	 */
+	public const END_MARKER = "\u{E007F}";
+
+	/**
 	 * Soft-wrap a line of markdown text.
 	 *
 	 * @param string $text Markdown text.
@@ -26,92 +40,237 @@ class WpHtmlApiLineWrapper {
 	 * @return array<int, string>
 	 */
 	public static function wrap( string $text, int $soft_limit ): array {
-		if ( ! class_exists( 'IntlBreakIterator' ) || $soft_limit <= 0 ) {
-			return self::wrap_without_intl( $text, max( 1, $soft_limit ) );
+		if ( $soft_limit <= 0 ) {
+			return [ str_replace( [ self::START_MARKER, self::END_MARKER ], '', $text ) ];
 		}
 
-		$fractional_soft_limit_ratio = 0.4;
-		$iterator                    = \IntlBreakIterator::createWordInstance( locale_get_default() );
-		$parts                       = $iterator->getPartsIterator();
-		$lines                       = [];
-		$line_length                 = 0;
-		$was_at                      = 0;
-		$at                          = 0;
-		$end                         = strlen( $text );
-		$non_breaking                = [];
-		$delta                       = 0;
+		[ $clean_text, $protected_ranges ] = self::extract_protected_ranges( $text );
 
-		while ( $at < $end ) {
-			$marker_at = strpos( $text, "\u{E0001}", $at );
-			if ( false === $marker_at ) {
-				break;
-			}
-
-			$at = strpos( $text, "\u{E007F}", $marker_at );
-			if ( false === $at ) {
-				$next_marker = strpos( $text, "\u{E0001}", $marker_at + 1 );
-				$at          = false === $next_marker ? ( $marker_at + 20 ) : min( $marker_at + 20, $next_marker );
-			}
-			$non_breaking[] = [ $marker_at - $delta, $at - $delta - 4 ];
-			$delta         += 8;
-		}
-		$active_nobr = array_shift( $non_breaking );
-		$text        = str_replace( [ "\u{E0001}", "\u{E007F}" ], '', $text );
-
-		$iterator->setText( $text );
-		foreach ( $parts as $part ) {
-			$offset          = $iterator->current();
-			$chunk_width     = mb_strwidth( $part );
-			$width_remaining = $soft_limit - $line_length;
-
-			if ( $active_nobr && $offset >= $active_nobr[1] ) {
-				$active_nobr = array_shift( $non_breaking );
-			}
-
-			$is_unbreakable = $active_nobr && $offset > $active_nobr[0] && $offset <= $active_nobr[1];
-			if ( $is_unbreakable ) {
-				$line_length += $chunk_width;
-				continue;
-			}
-
-			if ( 0 === $line_length && \IntlBreakIterator::WORD_NONE === $iterator->getRuleStatus() && count( $lines ) > 0 && 1 === preg_match( '~\A[`*_\p{C}\p{P}\p{Z}]*\Z~u', $part ) ) {
-				$lines[ count( $lines ) - 1 ] .= preg_replace( '~\p{Z}+\Z~u', '', $part );
-				$was_at                        = $offset;
-				continue;
-			}
-
-			if ( $chunk_width < $width_remaining ) {
-				$line_length += $chunk_width;
-				continue;
-			}
-
-			if ( ( $chunk_width / max( 1, $width_remaining ) ) < $fractional_soft_limit_ratio ) {
-				$line_length += $chunk_width;
-				continue;
-			}
-
-			$lines[]     = substr( $text, $was_at, $offset - $was_at );
-			$line_length = 0;
-			$was_at      = $offset;
-		}
-
-		if ( $was_at < strlen( $text ) ) {
-			$lines[] = substr( $text, $was_at );
-		}
-
-		return $lines;
+		return self::wrap_text_with_protected_ranges( $clean_text, max( 1, $soft_limit ), $protected_ranges );
 	}
 
 	/**
-	 * Fallback wrapper when Intl is unavailable.
+	 * Extract marker-protected spans from markdown text.
 	 *
-	 * @param string $text Markdown text.
+	 * @param string $text Markdown text with markers.
+	 *
+	 * @return array{0:string,1:array<int,array{0:int,1:int}>}
+	 */
+	private static function extract_protected_ranges( string $text ): array {
+		$clean_text = '';
+		$offset     = 0;
+		$stack      = [];
+		$ranges     = [];
+
+		while ( true ) {
+			$start_at = strpos( $text, self::START_MARKER, $offset );
+			$end_at   = strpos( $text, self::END_MARKER, $offset );
+
+			if ( false === $start_at && false === $end_at ) {
+				break;
+			}
+
+			$is_start     = false === $end_at || ( false !== $start_at && $start_at < $end_at );
+			$marker_at    = $is_start ? $start_at : $end_at;
+			$clean_text  .= substr( $text, $offset, $marker_at - $offset );
+			$clean_offset = strlen( $clean_text );
+
+			if ( $is_start ) {
+				$stack[] = $clean_offset;
+				$offset  = $marker_at + strlen( self::START_MARKER );
+				continue;
+			}
+
+			$start_offset = array_pop( $stack );
+			if ( is_int( $start_offset ) && $clean_offset > $start_offset ) {
+				$ranges[] = [ $start_offset, $clean_offset ];
+			}
+
+			$offset = $marker_at + strlen( self::END_MARKER );
+		}
+
+		$clean_text .= substr( $text, $offset );
+
+		if ( empty( $ranges ) ) {
+			return [ $clean_text, [] ];
+		}
+
+		usort(
+			$ranges,
+			static function ( array $left, array $right ): int {
+				return $left[0] <=> $right[0];
+			}
+		);
+
+		$merged = [ array_shift( $ranges ) ];
+		foreach ( $ranges as $range ) {
+			$last_index = count( $merged ) - 1;
+			$last       = $merged[ $last_index ];
+
+			if ( $range[0] <= $last[1] ) {
+				$merged[ $last_index ][1] = max( $last[1], $range[1] );
+				continue;
+			}
+
+			$merged[] = $range;
+		}
+
+		return [ $clean_text, $merged ];
+	}
+
+	/**
+	 * Wrap text while preserving protected ranges as indivisible spans.
+	 *
+	 * @param string $text Clean markdown text.
 	 * @param int    $soft_limit Soft wrap column.
+	 * @param array  $protected_ranges Protected ranges.
 	 *
 	 * @return array<int, string>
 	 */
-	private static function wrap_without_intl( string $text, int $soft_limit ): array {
-		$wrapped = wordwrap( $text, $soft_limit, "\n", true );
-		return explode( "\n", $wrapped );
+	private static function wrap_text_with_protected_ranges( string $text, int $soft_limit, array $protected_ranges ): array {
+		$segments = self::split_into_segments( $text, $protected_ranges );
+		$lines    = [ '' ];
+
+		foreach ( $segments as $segment ) {
+			$chunk = $segment['text'];
+
+			if ( '' === $chunk ) {
+				continue;
+			}
+
+			if ( $segment['protected'] ) {
+				self::append_wrapped_token( $lines, $chunk, $soft_limit, true );
+				continue;
+			}
+
+			$tokens = preg_split( '/(\s+)/u', $chunk, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
+			if ( ! is_array( $tokens ) ) {
+				continue;
+			}
+
+			foreach ( $tokens as $token ) {
+				self::append_wrapped_token( $lines, $token, $soft_limit, false );
+			}
+		}
+
+		return array_values(
+			array_map(
+				static function ( string $line ): string {
+					return rtrim( $line );
+				},
+				$lines
+			)
+		);
+	}
+
+	/**
+	 * Split clean text into protected and unprotected segments.
+	 *
+	 * @param string $text Clean markdown text.
+	 * @param array  $protected_ranges Protected ranges.
+	 *
+	 * @return array<int, array{text:string,protected:bool}>
+	 */
+	private static function split_into_segments( string $text, array $protected_ranges ): array {
+		if ( empty( $protected_ranges ) ) {
+			return [
+				[
+					'text'      => $text,
+					'protected' => false,
+				],
+			];
+		}
+
+		$segments = [];
+		$offset   = 0;
+
+		foreach ( $protected_ranges as $range ) {
+			$start = $range[0];
+			$end   = $range[1];
+
+			if ( $start > $offset ) {
+				$segments[] = [
+					'text'      => substr( $text, $offset, $start - $offset ),
+					'protected' => false,
+				];
+			}
+
+			$segments[] = [
+				'text'      => substr( $text, $start, $end - $start ),
+				'protected' => true,
+			];
+			$offset     = $end;
+		}
+
+		if ( $offset < strlen( $text ) ) {
+			$segments[] = [
+				'text'      => substr( $text, $offset ),
+				'protected' => false,
+			];
+		}
+
+		return $segments;
+	}
+
+	/**
+	 * Append a token to wrapped lines.
+	 *
+	 * @param array<int, string> $lines Current wrapped lines.
+	 * @param string             $token Token text.
+	 * @param int                $soft_limit Soft wrap column.
+	 * @param bool               $is_protected Whether the token is protected from internal wrapping.
+	 *
+	 * @return void
+	 */
+	private static function append_wrapped_token( array &$lines, string $token, int $soft_limit, bool $is_protected ): void {
+		$parts = explode( "\n", $token );
+
+		foreach ( $parts as $index => $part ) {
+			if ( '' !== $part ) {
+				self::append_single_token( $lines, $part, $soft_limit, $is_protected );
+			}
+
+			if ( $index < count( $parts ) - 1 ) {
+				$lines[] = '';
+			}
+		}
+	}
+
+	/**
+	 * Append a single token without hard line breaks.
+	 *
+	 * @param array<int, string> $lines Current wrapped lines.
+	 * @param string             $token Token text.
+	 * @param int                $soft_limit Soft wrap column.
+	 * @param bool               $is_protected Whether the token is protected.
+	 *
+	 * @return void
+	 */
+	private static function append_single_token( array &$lines, string $token, int $soft_limit, bool $is_protected ): void {
+		$current_index = count( $lines ) - 1;
+		$current_line  = $lines[ $current_index ];
+
+		if ( '' === trim( $token ) ) {
+			if ( '' !== $current_line ) {
+				$lines[ $current_index ] .= $token;
+			}
+
+			return;
+		}
+
+		$current_width = mb_strwidth( $current_line );
+		$token_width   = mb_strwidth( $token );
+
+		if ( 0 !== $current_width && ( $current_width + $token_width ) > $soft_limit ) {
+			$lines[] = ltrim( $token );
+			return;
+		}
+
+		if ( ! $is_protected && $current_width > 0 && ( $current_width + $token_width ) > $soft_limit ) {
+			$lines[] = ltrim( $token );
+			return;
+		}
+
+		$lines[ $current_index ] .= $token;
 	}
 }

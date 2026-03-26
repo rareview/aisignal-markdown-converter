@@ -150,7 +150,7 @@ class MarkdownConverter {
 		if ( $thumb_id ) {
 			$image_url = wp_get_attachment_url( $thumb_id );
 			$image_alt = get_post_meta( $thumb_id, '_wp_attachment_image_alt', true );
-			if ( ! empty( $image_url ) ) {
+			if ( ! empty( $image_url ) && $this->should_prepend_featured_image( $body_md, $image_url, (int) $thumb_id ) ) {
 				$parts[] = '![' . ( $image_alt ?: $title ) . '](' . $image_url . ')';
 				$parts[] = '';
 			}
@@ -180,6 +180,29 @@ class MarkdownConverter {
 	}
 
 	/**
+	 * Determine whether the featured image should be prepended to the document.
+	 *
+	 * @param string $body_md Body markdown.
+	 * @param string $featured_image_url Featured image URL.
+	 * @param int    $featured_image_id Featured image attachment ID.
+	 *
+	 * @return bool
+	 */
+	protected function should_prepend_featured_image( string $body_md, string $featured_image_url, int $featured_image_id = 0 ): bool {
+		if ( '' === trim( $featured_image_url ) ) {
+			return false;
+		}
+
+		foreach ( $this->extract_markdown_image_urls( $body_md ) as $body_image_url ) {
+			if ( $this->image_urls_refer_to_same_asset( $featured_image_url, $body_image_url, $featured_image_id ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * Get the rendered-first body markdown for a post.
 	 *
 	 * @param \WP_Post $post Post object.
@@ -188,6 +211,73 @@ class MarkdownConverter {
 	 */
 	protected function get_body_markdown( \WP_Post $post ) {
 		return $this->generate_post_markdown( $post );
+	}
+
+	/**
+	 * Extract image URLs from markdown image syntax.
+	 *
+	 * @param string $markdown Markdown content.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function extract_markdown_image_urls( string $markdown ): array {
+		$matches = [];
+		preg_match_all( '/!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/', $markdown, $matches );
+
+		if ( empty( $matches[1] ) || ! is_array( $matches[1] ) ) {
+			return [];
+		}
+
+		return array_values(
+			array_filter(
+				array_map(
+					static function ( string $url ): string {
+						return trim( $url );
+					},
+					$matches[1]
+				),
+				'strlen'
+			)
+		);
+	}
+
+	/**
+	 * Determine whether two image URLs refer to the same attachment or sized variant.
+	 *
+	 * @param string $primary_url Primary image URL.
+	 * @param string $candidate_url Candidate image URL.
+	 * @param int    $primary_id Optional known attachment ID for the primary image.
+	 *
+	 * @return bool
+	 */
+	protected function image_urls_refer_to_same_asset( string $primary_url, string $candidate_url, int $primary_id = 0 ): bool {
+		$primary_normalized   = $this->normalize_image_url_for_comparison( $primary_url );
+		$candidate_normalized = $this->normalize_image_url_for_comparison( $candidate_url );
+
+		if ( '' !== $primary_normalized && $primary_normalized === $candidate_normalized ) {
+			return true;
+		}
+
+		$primary_image   = $this->resolve_image_alt( $primary_url, $primary_id );
+		$candidate_image = $this->resolve_image_alt( $candidate_url );
+
+		return ! empty( $primary_image['att_id'] ) && $primary_image['att_id'] === (int) $candidate_image['att_id'];
+	}
+
+	/**
+	 * Normalize an image URL for same-asset comparisons.
+	 *
+	 * @param string $url Image URL.
+	 *
+	 * @return string
+	 */
+	protected function normalize_image_url_for_comparison( string $url ): string {
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		$path = is_string( $path ) && '' !== $path ? rawurldecode( $path ) : rawurldecode( $url );
+		$path = preg_replace( '/-\d+x\d+(?=\.[a-zA-Z]{3,4}$)/', '', (string) $path );
+		$path = preg_replace( '/-scaled(?=\.[a-zA-Z]{3,4}$)/', '', (string) $path );
+
+		return strtolower( (string) $path );
 	}
 
 	/**
