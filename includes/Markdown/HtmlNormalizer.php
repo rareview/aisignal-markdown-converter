@@ -285,23 +285,7 @@ class HtmlNormalizer {
 	 * @return void
 	 */
 	protected function remove_noise_elements( \DOMElement $root, ?\WP_Post $post = null ) {
-		$tokens  = apply_filters(
-			'aisignal_markdown_remove_node_patterns',
-			[
-				'breadcrumb',
-				'breadcrumbs',
-				'pagination',
-				'pager',
-				'comment',
-				'comments',
-				'cookie',
-				'cookies',
-				'modal',
-				'popup',
-				'dialog',
-			],
-			$post
-		);
+		$tokens  = $this->get_excluded_container_tokens( $post );
 		$phrases = apply_filters(
 			'aisignal_markdown_remove_node_phrases',
 			[
@@ -338,16 +322,10 @@ class HtmlNormalizer {
 	 * @return bool
 	 */
 	protected function element_matches_noise_patterns( \DOMElement $node, array $tokens, array $phrases ) {
-		$attrs = $this->get_attribute_string( $node );
-		if ( empty( $attrs ) ) {
-			return false;
-		}
-
-		$attribute_tokens = $this->get_attribute_tokens( $node );
-		foreach ( $tokens as $token ) {
-			if ( in_array( strtolower( (string) $token ), $attribute_tokens, true ) ) {
-				return true;
-			}
+		$attrs         = $this->get_attribute_string( $node );
+		$matches_token = $this->element_matches_excluded_tokens( $node, $tokens );
+		if ( $matches_token && $this->should_remove_excluded_element( $node ) ) {
+			return true;
 		}
 
 		foreach ( $phrases as $phrase ) {
@@ -357,6 +335,136 @@ class HtmlNormalizer {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Get the shared excluded container tokens.
+	 *
+	 * @param \WP_Post|null $post Optional post object.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_excluded_container_tokens( ?\WP_Post $post = null ) {
+		return apply_filters(
+			'aisignal_markdown_excluded_container_tokens',
+			[
+				'nav',
+				'menu',
+				'sidebar',
+				'header',
+				'footer',
+				'breadcrumb',
+				'breadcrumbs',
+				'pagination',
+				'pager',
+				'comment',
+				'comments',
+				'cookie',
+				'cookies',
+				'modal',
+				'popup',
+				'dialog',
+			],
+			$post
+		);
+	}
+
+	/**
+	 * Check whether an element matches any excluded token.
+	 *
+	 * @param \DOMElement $node Element node.
+	 * @param array       $tokens Excluded tokens.
+	 *
+	 * @return bool
+	 */
+	protected function element_matches_excluded_tokens( \DOMElement $node, array $tokens ) {
+		$element_tokens = $this->get_element_tokens( $node );
+
+		foreach ( $tokens as $token ) {
+			if ( in_array( strtolower( (string) $token ), $element_tokens, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Determine whether an excluded element should be removed.
+	 *
+	 * @param \DOMElement $node Element node.
+	 *
+	 * @return bool
+	 */
+	protected function should_remove_excluded_element( \DOMElement $node ) {
+		$always_remove_tokens = [
+			'nav',
+			'menu',
+			'sidebar',
+			'breadcrumb',
+			'breadcrumbs',
+			'pagination',
+			'pager',
+			'comment',
+			'comments',
+			'cookie',
+			'cookies',
+			'modal',
+			'popup',
+			'dialog',
+		];
+		$element_tokens       = $this->get_element_tokens( $node );
+
+		foreach ( $always_remove_tokens as $token ) {
+			if ( in_array( $token, $element_tokens, true ) ) {
+				return true;
+			}
+		}
+
+		return $this->looks_like_chrome_container( $node );
+	}
+
+	/**
+	 * Detect whether an element looks like page chrome rather than content.
+	 *
+	 * @param \DOMElement $node Element node.
+	 *
+	 * @return bool
+	 */
+	protected function looks_like_chrome_container( \DOMElement $node ) {
+		$tag_name = strtolower( $this->get_tag_name( $node ) );
+		if ( in_array( $tag_name, [ 'nav', 'aside', 'footer' ], true ) ) {
+			return true;
+		}
+
+		$role = strtolower( (string) $node->getAttribute( 'role' ) );
+		if ( in_array( $role, [ 'navigation', 'complementary', 'search' ], true ) ) {
+			return true;
+		}
+
+		$text_length = strlen( $this->get_node_text_content( $node ) );
+		if ( 0 === $text_length ) {
+			return true;
+		}
+
+		$link_text_length = 0;
+		foreach ( $node->getElementsByTagName( 'a' ) as $link ) {
+			$link_text_length += strlen( $this->get_node_text_content( $link ) );
+		}
+
+		$link_density = $link_text_length / max( 1, $text_length );
+		if ( $link_density >= 0.45 ) {
+			return true;
+		}
+
+		$heading_count = 0;
+		foreach ( [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ] as $heading_tag ) {
+			$heading_count += $node->getElementsByTagName( $heading_tag )->length;
+		}
+
+		$paragraph_count = $node->getElementsByTagName( 'p' )->length;
+
+		return 0 === $heading_count && $paragraph_count <= 1 && $text_length < 120;
 	}
 
 	/**
@@ -407,6 +515,35 @@ class HtmlNormalizer {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Get element tokens including tag name.
+	 *
+	 * @param \DOMElement $node Element node.
+	 *
+	 * @return array
+	 */
+	protected function get_element_tokens( \DOMElement $node ) {
+		$tokens   = $this->get_attribute_tokens( $node );
+		$role     = strtolower( trim( $node->getAttribute( 'role' ) ) );
+		$tag_name = strtolower( $this->get_tag_name( $node ) );
+
+		if ( 'navigation' === $role ) {
+			$tokens[] = 'nav';
+		} elseif ( 'complementary' === $role ) {
+			$tokens[] = 'sidebar';
+		} elseif ( 'banner' === $role ) {
+			$tokens[] = 'header';
+		} elseif ( 'contentinfo' === $role ) {
+			$tokens[] = 'footer';
+		}
+
+		if ( '' !== $tag_name ) {
+			$tokens[] = $tag_name;
+		}
+
+		return array_values( array_unique( $tokens ) );
 	}
 
 	/**

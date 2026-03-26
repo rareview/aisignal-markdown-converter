@@ -57,6 +57,27 @@ class WpHtmlApiRenderer {
 	];
 
 	/**
+	 * Whether parsing is currently inside a table header section.
+	 *
+	 * @var bool
+	 */
+	private bool $inside_table_head = false;
+
+	/**
+	 * Whether parsing is currently inside a table cell.
+	 *
+	 * @var bool
+	 */
+	private bool $inside_table_cell = false;
+
+	/**
+	 * Whether the active table cell should be treated as a header cell.
+	 *
+	 * @var bool
+	 */
+	private bool $current_table_cell_is_header = false;
+
+	/**
 	 * Open block stack.
 	 *
 	 * @var array<int, WpHtmlApiBlock>
@@ -103,13 +124,17 @@ class WpHtmlApiRenderer {
 				continue;
 			}
 
+			if ( $this->handle_table_cell_block_token( $token_name, $is_closer ) ) {
+				continue;
+			}
+
 			switch ( $token_name ) {
 				case '#text':
 					$preserve_whitespace = $this->depths['PRE'] > 0;
 					$chunk               = $processor->get_modifiable_text();
 					$chunk               = $preserve_whitespace ? $chunk : preg_replace( '~[ \t\f\r\n]+~', ' ', $chunk );
 					$this->line_buffer->append_text( $chunk );
-					if ( ! ( $this->innermost_block() instanceof WpHtmlApiBlockParagraph ) && $this->line_buffer->has_non_whitespace_content() ) {
+					if ( ! $this->inside_table_cell && ! ( $this->innermost_block() instanceof WpHtmlApiBlockParagraph ) && $this->line_buffer->has_non_whitespace_content() ) {
 						$paragraph = new WpHtmlApiBlockParagraph();
 						$paragraph->append_line( $this->line_buffer );
 						$this->enter_block( $paragraph );
@@ -173,6 +198,10 @@ class WpHtmlApiRenderer {
 					break;
 
 				case 'BLOCKQUOTE':
+					if ( $this->inside_table_cell ) {
+						$this->append_table_cell_break();
+						break;
+					}
 					$this->close_a_paragraph();
 					if ( $is_closer ) {
 						$this->flush_block();
@@ -187,6 +216,10 @@ class WpHtmlApiRenderer {
 				case 'H4':
 				case 'H5':
 				case 'H6':
+					if ( $this->inside_table_cell ) {
+						$this->append_table_cell_break();
+						break;
+					}
 					$this->close_a_paragraph();
 					if ( $is_closer ) {
 						$this->flush_block();
@@ -198,6 +231,12 @@ class WpHtmlApiRenderer {
 					break;
 
 				case 'HR':
+					if ( $this->inside_table_cell ) {
+						$this->append_table_cell_break();
+						$this->line_buffer->append_text( '---' );
+						$this->append_table_cell_break();
+						break;
+					}
 					$this->close_a_paragraph();
 					$break             = new WpHtmlApiBlockParagraph();
 					$this->line_buffer = new WpHtmlApiLineBuffer();
@@ -219,6 +258,15 @@ class WpHtmlApiRenderer {
 					break;
 
 				case 'LI':
+					if ( $this->inside_table_cell ) {
+						if ( ! $is_closer ) {
+							$this->append_table_cell_break();
+							$this->line_buffer->append_text( '- ' );
+						} else {
+							$this->append_table_cell_break();
+						}
+						break;
+					}
 					$this->close_a_paragraph();
 					if ( ! ( $is_closer || $this->innermost_block() instanceof WpHtmlApiBlockList ) ) {
 						$this->enter_block( new WpHtmlApiBlockList( '' ) );
@@ -251,6 +299,11 @@ class WpHtmlApiRenderer {
 					break;
 
 				case 'PRE':
+					if ( $this->inside_table_cell ) {
+						$this->append_table_cell_break();
+						$this->depths['PRE'] += $is_closer ? -1 : 1;
+						break;
+					}
 					$this->close_a_paragraph();
 					if ( $is_closer ) {
 						$this->flush_block();
@@ -263,6 +316,13 @@ class WpHtmlApiRenderer {
 
 				case 'OL':
 				case 'UL':
+					if ( $this->inside_table_cell ) {
+						if ( $is_closer ) {
+							$this->append_table_cell_break();
+						}
+						$this->depths[ $token_name ] += $is_closer ? -1 : 1;
+						break;
+					}
 					$this->close_a_paragraph();
 					if ( $is_closer ) {
 						if ( $this->line_buffer->has_non_whitespace_content() ) {
@@ -311,21 +371,55 @@ class WpHtmlApiRenderer {
 
 				case 'TABLE':
 					$this->close_a_paragraph();
-					$this->options->soft_line_wrap = $is_closer ? $soft_limit : PHP_INT_MAX;
+					if ( $is_closer ) {
+						$this->options->soft_line_wrap = $soft_limit;
+						$this->flush_block();
+					} else {
+						$this->options->soft_line_wrap = PHP_INT_MAX;
+						$this->enter_block( new WpHtmlApiBlockTable() );
+					}
+					break;
+
+				case 'THEAD':
+					$this->inside_table_head = ! $is_closer;
+					break;
+
+				case 'TBODY':
+				case 'TFOOT':
+					if ( ! $is_closer ) {
+						$this->inside_table_head = false;
+					}
 					break;
 
 				case 'TD':
 				case 'TH':
+					$table = $this->innermost_table();
+					if ( ! $table instanceof WpHtmlApiBlockTable ) {
+						break;
+					}
+
 					if ( $is_closer ) {
-						$this->line_buffer->append_text( ' | ' );
+						$table->append_table_cell( $this->line_buffer, $this->current_table_cell_is_header );
+						$this->line_buffer                  = new WpHtmlApiLineBuffer();
+						$this->inside_table_cell            = false;
+						$this->current_table_cell_is_header = false;
+					} else {
+						$this->line_buffer                  = new WpHtmlApiLineBuffer();
+						$this->inside_table_cell            = true;
+						$this->current_table_cell_is_header = $this->inside_table_head || 'TH' === $token_name;
 					}
 					break;
 
 				case 'TR':
+					$table = $this->innermost_table();
+					if ( ! $table instanceof WpHtmlApiBlockTable ) {
+						break;
+					}
+
 					if ( $is_closer ) {
-						$this->line_buffer->append_text( "\n" );
+						$table->finish_row();
 					} else {
-						$this->line_buffer->append_text( '| ' );
+						$table->start_row( $this->inside_table_head );
 					}
 					break;
 			}
@@ -370,6 +464,11 @@ class WpHtmlApiRenderer {
 	 * @return void
 	 */
 	private function close_a_paragraph() {
+		if ( $this->inside_table_cell ) {
+			$this->append_table_cell_break();
+			return;
+		}
+
 		if ( $this->innermost_block() instanceof WpHtmlApiBlockParagraph && $this->line_buffer->has_non_whitespace_content() ) {
 			$this->flush_block();
 		} elseif ( $this->line_buffer->has_non_whitespace_content() ) {
@@ -432,6 +531,74 @@ class WpHtmlApiRenderer {
 	}
 
 	/**
+	 * Handle block-level tokens that should be flattened inside table cells.
+	 *
+	 * @param string $token_name Current token name.
+	 * @param bool   $is_closer Whether the token is a closer.
+	 *
+	 * @return bool
+	 */
+	private function handle_table_cell_block_token( string $token_name, bool $is_closer ): bool {
+		unset( $is_closer );
+
+		if ( ! $this->inside_table_cell ) {
+			return false;
+		}
+
+		if ( ! in_array(
+			$token_name,
+			[
+				'ARTICLE',
+				'ASIDE',
+				'CENTER',
+				'DETAILS',
+				'DIALOG',
+				'DIV',
+				'FIGCAPTION',
+				'FIGURE',
+				'FOOTER',
+				'FORM',
+				'HEADER',
+				'HGROUP',
+				'LEGEND',
+				'MAIN',
+				'NAV',
+				'P',
+				'PLAINTEXT',
+				'SEARCH',
+				'SECTION',
+				'SUMMARY',
+				'XMP',
+			],
+			true
+		) ) {
+			return false;
+		}
+
+		$this->append_table_cell_break();
+		return true;
+	}
+
+	/**
+	 * Append a logical line break inside the current table cell.
+	 *
+	 * @return bool
+	 */
+	private function append_table_cell_break(): bool {
+		if ( ! $this->inside_table_cell || ! $this->line_buffer->has_non_whitespace_content() ) {
+			return false;
+		}
+
+		$buffer = $this->line_buffer->raw_buffer();
+		if ( '' === $buffer || str_ends_with( $buffer, "\n" ) ) {
+			return false;
+		}
+
+		$this->line_buffer->append_text( "\n" );
+		return true;
+	}
+
+	/**
 	 * Push a new block onto the stack.
 	 *
 	 * @param WpHtmlApiBlock $block Block to push.
@@ -459,5 +626,20 @@ class WpHtmlApiRenderer {
 	private function innermost_block(): ?WpHtmlApiBlock {
 		$stack_size = count( $this->stack );
 		return $stack_size > 0 ? $this->stack[ $stack_size - 1 ] : null;
+	}
+
+	/**
+	 * Get the innermost table block on the stack.
+	 *
+	 * @return WpHtmlApiBlockTable|null
+	 */
+	private function innermost_table(): ?WpHtmlApiBlockTable {
+		for ( $index = count( $this->stack ) - 1; $index >= 0; --$index ) {
+			if ( $this->stack[ $index ] instanceof WpHtmlApiBlockTable ) {
+				return $this->stack[ $index ];
+			}
+		}
+
+		return null;
 	}
 }

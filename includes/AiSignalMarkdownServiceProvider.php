@@ -24,6 +24,7 @@ class AiSignalMarkdownServiceProvider {
 	public static array $services = [
 		Register::class,
 		Markdown\MarkdownEndpoint::class,
+		Admin\AdminPage::class,
 	];
 
 	/**
@@ -47,6 +48,10 @@ class AiSignalMarkdownServiceProvider {
 	public static function activate(): void {
 		if ( false === get_option( 'aisignal_markdown_post_types' ) ) {
 			update_option( 'aisignal_markdown_post_types', [ 'post', 'page' ] );
+		}
+
+		if ( false === get_option( 'aisignal_markdown_enable_frontmatter' ) ) {
+			update_option( 'aisignal_markdown_enable_frontmatter', false );
 		}
 
 		$endpoint = new Markdown\MarkdownEndpoint();
@@ -76,7 +81,7 @@ class AiSignalMarkdownServiceProvider {
 		unset( $plugin_file, $plugin_data, $status );
 
 		$columns = function_exists( 'wp_is_auto_update_enabled_for_type' ) && wp_is_auto_update_enabled_for_type( 'plugin' ) ? 4 : 3;
-		$message = __( 'AI Signal Markdown is currently an alpha release and is intended for evaluation and development use. Do not treat it as a finished production-ready product yet.', 'aisignal-markdown' );
+		$message = __( 'AI Signal Markdown is currently an alpha release intended for evaluation and development use. Expect occasional rough edges and verify behavior carefully before relying on it in production.', 'aisignal-markdown' );
 
 		printf(
 			'<tr class="plugin-update-tr aisignal-markdown-plugin-row-notice"><td colspan="%1$d" class="plugin-update colspanchange"><div class="notice inline notice-warning notice-alt"><p>%2$s</p></div></td></tr>',

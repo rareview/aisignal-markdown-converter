@@ -63,6 +63,11 @@ class Register {
 	 */
 	protected function get_markdown_url(): string {
 		if ( is_singular() ) {
+			$post = get_queried_object();
+			if ( $post instanceof \WP_Post && ! in_array( $post->post_type, Helpers::get_enabled_post_types( 'markdown' ), true ) ) {
+				return '';
+			}
+
 			return add_query_arg( 'format', 'markdown', get_permalink() );
 		}
 

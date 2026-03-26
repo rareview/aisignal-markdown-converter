@@ -38,8 +38,6 @@ class MarkdownEndpoint {
 			return;
 		}
 
-		$this->converter = new MarkdownConverter();
-
 		add_action( 'init', [ $this, 'add_rewrite_rules' ] );
 		add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
 		add_action( 'template_redirect', [ $this, 'handle_markdown_request' ] );
@@ -91,31 +89,38 @@ class MarkdownEndpoint {
 	 * @return void
 	 */
 	public function intercept_md_request( $wp ) {
-		$request = trim( $wp->request, '/' );
-
-		$is_md = false;
-		$slug  = '';
+		$request   = trim( $wp->request, '/' );
+		$is_md     = false;
+		$is_format = $this->is_query_parameter_markdown_request();
+		$slug      = '';
 
 		if ( preg_match( '/^(.+)\.md$/', $request, $matches ) ) {
 			$is_md = true;
 			$slug  = $matches[1];
 		}
 
-		if ( ! $is_md ) {
+		if ( ! $is_md && ! $is_format ) {
 			return;
 		}
 
-		$post = $this->resolve_post_from_path( $slug );
+		if ( $is_md ) {
+			$post = $this->resolve_post_from_path( $slug );
+		} elseif ( '' === $request ) {
+			$this->serve_homepage_markdown();
+			return;
+		} else {
+			$post = $this->resolve_post_from_request();
+		}
 
 		if ( ! $post ) {
-			return; // Let WordPress handle the 404 normally.
+			return; // Let WordPress handle the request normally.
 		}
 
 		if ( ! $this->is_markdown_type_enabled( $post ) ) {
 			return;
 		}
 
-		$markdown = $this->converter->convert_post_full( $post );
+		$markdown = $this->get_converter()->convert_post_full( $post );
 		$this->send_markdown_response( $markdown );
 	}
 
@@ -126,10 +131,10 @@ class MarkdownEndpoint {
 	 */
 	public function handle_markdown_request() {
 		$is_md_endpoint = get_query_var( 'aisignal_md' );
-		$format         = get_query_var( 'format' );
+		$is_format      = $this->is_query_parameter_markdown_request();
 		$is_accept      = $this->wants_markdown_response();
 
-		if ( ! $is_md_endpoint && 'markdown' !== $format && ! $is_accept ) {
+		if ( ! $is_md_endpoint && ! $is_format && ! $is_accept ) {
 			return;
 		}
 
@@ -155,8 +160,46 @@ class MarkdownEndpoint {
 			echo "# Not Available\n\nMarkdown is not enabled for this content type.\n";
 			exit;
 		}
-		$markdown = $this->converter->convert_post_full( $post );
+		$markdown = $this->get_converter()->convert_post_full( $post );
 		$this->send_markdown_response( $markdown );
+	}
+
+	/**
+	 * Determine whether the current request explicitly asks for markdown via query string.
+	 *
+	 * @return bool
+	 */
+	protected function is_query_parameter_markdown_request() {
+		$format = get_query_var( 'format' );
+
+		if ( is_string( $format ) && 'markdown' === strtolower( $format ) ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only response negotiation.
+		if ( isset( $_GET['format'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only response negotiation.
+			$format = sanitize_text_field( wp_unslash( (string) $_GET['format'] ) );
+
+			if ( 'markdown' === strtolower( $format ) ) {
+				return true;
+			}
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only response negotiation.
+		$query_string = isset( $_SERVER['QUERY_STRING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['QUERY_STRING'] ) ) : '';
+
+		if ( '' === $query_string ) {
+			return false;
+		}
+
+		parse_str( $query_string, $query_args );
+
+		if ( ! isset( $query_args['format'] ) ) {
+			return false;
+		}
+
+		return 'markdown' === strtolower( sanitize_text_field( wp_unslash( (string) $query_args['format'] ) ) );
 	}
 
 	/**
@@ -190,7 +233,7 @@ class MarkdownEndpoint {
 		if ( 'page' === get_option( 'show_on_front' ) && $front_page_id ) {
 			$post = get_post( $front_page_id );
 			if ( $post ) {
-				$markdown = $this->converter->convert_post_full( $post );
+				$markdown = $this->get_converter()->convert_post_full( $post );
 			}
 		}
 
@@ -463,16 +506,18 @@ class MarkdownEndpoint {
 			return new \WP_REST_Response( [ 'error' => 'Markdown is not enabled for this post type.' ], 403 );
 		}
 
-		$markdown = $this->converter->convert_post_full( $post );
+		$markdown = $this->get_converter()->convert_post_full( $post );
+
+		$response = [
+			'id'       => $post->ID,
+			'title'    => get_the_title( $post ),
+			'markdown' => $markdown,
+			'url'      => get_permalink( $post ),
+			'md_url'   => get_permalink( $post ) . '?format=markdown',
+		];
 
 		return new \WP_REST_Response(
-			[
-				'id'       => $post->ID,
-				'title'    => get_the_title( $post ),
-				'markdown' => $markdown,
-				'url'      => get_permalink( $post ),
-				'md_url'   => get_permalink( $post ) . '?format=markdown',
-			]
+			$response
 		);
 	}
 
@@ -497,16 +542,31 @@ class MarkdownEndpoint {
 			return new \WP_REST_Response( [ 'error' => 'Post not found' ], 404 );
 		}
 
-		$markdown = $this->converter->convert_post_full( $post );
+		$markdown = $this->get_converter()->convert_post_full( $post );
+
+		$response = [
+			'id'       => $post->ID,
+			'title'    => get_the_title( $post ),
+			'markdown' => $markdown,
+			'url'      => get_permalink( $post ),
+			'md_url'   => get_permalink( $post ) . '?format=markdown',
+		];
 
 		return new \WP_REST_Response(
-			[
-				'id'       => $post->ID,
-				'title'    => get_the_title( $post ),
-				'markdown' => $markdown,
-				'url'      => get_permalink( $post ),
-				'md_url'   => get_permalink( $post ) . '?format=markdown',
-			]
+			$response
 		);
+	}
+
+	/**
+	 * Lazily instantiate the Markdown converter.
+	 *
+	 * @return MarkdownConverter
+	 */
+	protected function get_converter() {
+		if ( ! is_object( $this->converter ) || ! method_exists( $this->converter, 'convert_post_full' ) ) {
+			$this->converter = new MarkdownConverter();
+		}
+
+		return $this->converter;
 	}
 }

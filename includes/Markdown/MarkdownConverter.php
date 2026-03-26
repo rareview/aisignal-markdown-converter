@@ -62,6 +62,13 @@ class MarkdownConverter {
 	protected $supplemental_extractor;
 
 	/**
+	 * YAML frontmatter builder.
+	 *
+	 * @var FrontmatterBuilder
+	 */
+	protected $frontmatter_builder;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -70,6 +77,7 @@ class MarkdownConverter {
 		$this->normalizer             = new HtmlNormalizer();
 		$this->engine                 = new WpHtmlApiMarkdownEngine();
 		$this->supplemental_extractor = new SupplementalContentExtractor();
+		$this->frontmatter_builder    = new FrontmatterBuilder();
 	}
 
 	/**
@@ -111,28 +119,32 @@ class MarkdownConverter {
 			return '';
 		}
 
-		$output = '';
+		$output    = '';
+		$title     = html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' );
+		$parts     = [ '# ' . $title, '' ];
+		$meta      = [];
+		$author    = get_the_author_meta( 'display_name', $post->post_author );
+		$date      = get_the_date( 'F j, Y', $post );
+		$body_md   = $this->get_body_markdown( $post );
+		$thumb_id  = get_post_thumbnail_id( $post );
+		$body_md   = preg_replace( '/^#\s+' . preg_quote( $title, '/' ) . '\s*\n+/i', '', trim( $body_md ) );
+		$yaml_head = '';
 
-		$title    = html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' );
-		$parts    = [ '# ' . $title, '' ];
-		$meta     = [];
-		$author   = get_the_author_meta( 'display_name', $post->post_author );
-		$date     = get_the_date( 'F j, Y', $post );
-		$body_md  = $this->get_body_markdown( $post );
-		$excerpt  = get_the_excerpt( $post );
-		$thumb_id = get_post_thumbnail_id( $post );
+		if ( Helpers::is_frontmatter_enabled() ) {
+			$yaml_head = $this->frontmatter_builder->build( $post, $body_md );
+		} else {
+			if ( ! empty( $author ) ) {
+				$meta[] = 'By ' . $author;
+			}
 
-		if ( ! empty( $author ) ) {
-			$meta[] = 'By ' . $author;
-		}
+			if ( ! empty( $date ) ) {
+				$meta[] = $date;
+			}
 
-		if ( ! empty( $date ) ) {
-			$meta[] = $date;
-		}
-
-		if ( ! empty( $meta ) ) {
-			$parts[] = '*' . implode( ' | ', $meta ) . '*';
-			$parts[] = '';
+			if ( ! empty( $meta ) ) {
+				$parts[] = '*' . implode( ' | ', $meta ) . '*';
+				$parts[] = '';
+			}
 		}
 
 		if ( $thumb_id ) {
@@ -144,15 +156,11 @@ class MarkdownConverter {
 			}
 		}
 
-		if ( ! empty( $excerpt ) && $excerpt !== $post->post_content ) {
-			$parts[] = '> ' . html_entity_decode( wp_strip_all_tags( $excerpt ), ENT_QUOTES, 'UTF-8' );
+		if ( ! Helpers::is_frontmatter_enabled() ) {
+			$parts[] = '---';
 			$parts[] = '';
 		}
 
-		$parts[] = '---';
-		$parts[] = '';
-
-		$body_md = preg_replace( '/^#\s+' . preg_quote( $title, '/' ) . '\s*\n+/i', '', trim( $body_md ) );
 		$parts[] = $body_md;
 
 		$categories = get_the_category( $post->ID );
@@ -166,7 +174,7 @@ class MarkdownConverter {
 			$parts[] = '**Tags:** ' . implode( ', ', wp_list_pluck( $tags, 'name' ) );
 		}
 
-		$output .= implode( "\n", $parts );
+		$output .= $yaml_head . implode( "\n", $parts );
 
 		return $output;
 	}
@@ -190,20 +198,24 @@ class MarkdownConverter {
 	 * @return string
 	 */
 	protected function generate_post_markdown( \WP_Post $post ) {
-		$base_url        = get_permalink( $post );
-		$primary_html    = $this->capture->capture_filtered_content_html( $post );
-		$normalized_html = $this->normalizer->normalize_fragment( $primary_html, $post );
-		$markdown        = $this->convert_html_fragment_to_markdown( $normalized_html, $base_url );
+		$base_url     = get_permalink( $post );
+		$markdown     = '';
+		$primary_html = $this->capture->capture_post_html( $post );
+
+		if ( ! empty( trim( wp_strip_all_tags( $primary_html ) ) ) ) {
+			$extracted_html = $this->extractor->extract( $primary_html, $post );
+			if ( ! empty( trim( wp_strip_all_tags( $extracted_html ) ) ) ) {
+				$normalized_html = $this->normalizer->normalize_fragment( $extracted_html, $post );
+				$markdown        = $this->convert_html_fragment_to_markdown( $normalized_html, $base_url );
+			}
+		}
 
 		if ( $this->should_use_supplemental_fallback( $markdown ) ) {
-			$rendered_html = $this->capture->capture_post_html( $post );
-			if ( ! empty( trim( wp_strip_all_tags( $rendered_html ) ) ) ) {
-				$extracted_html = $this->extractor->extract( $rendered_html, $post );
-				if ( ! empty( trim( wp_strip_all_tags( $extracted_html ) ) ) ) {
-					$extracted_html = $this->normalizer->normalize_fragment( $extracted_html, $post );
-					$extracted_md   = $this->convert_html_fragment_to_markdown( $extracted_html, $base_url );
-					$markdown       = $this->merge_markdown_fragments( $markdown, $extracted_md );
-				}
+			$filtered_html = $this->capture->capture_filtered_content_html( $post );
+			if ( ! empty( trim( wp_strip_all_tags( $filtered_html ) ) ) ) {
+				$filtered_html = $this->normalizer->normalize_fragment( $filtered_html, $post );
+				$filtered_md   = $this->convert_html_fragment_to_markdown( $filtered_html, $base_url );
+				$markdown      = $this->merge_markdown_fragments( $markdown, $filtered_md );
 			}
 		}
 
@@ -289,10 +301,173 @@ class MarkdownConverter {
 		);
 
 		$markdown = html_entity_decode( $markdown, ENT_QUOTES, 'UTF-8' );
+		$markdown = $this->merge_adjacent_markdown_tables( $markdown );
 		$markdown = $this->deduplicate_blocks( $markdown );
 		$markdown = preg_replace( '/\n{4,}/', "\n\n\n", $markdown );
 
 		return rtrim( $markdown ) . "\n";
+	}
+
+	/**
+	 * Merge adjacent compatible Markdown tables created from split HTML tables.
+	 *
+	 * @param string $markdown Markdown content.
+	 *
+	 * @return string
+	 */
+	protected function merge_adjacent_markdown_tables( string $markdown ): string {
+		$parts  = preg_split( '/(\n{2,})/', $markdown, -1, PREG_SPLIT_DELIM_CAPTURE );
+		$result = [];
+		$count  = count( $parts );
+
+		for ( $index = 0; $index < $count; ++$index ) {
+			$part = $parts[ $index ];
+
+			if ( ! $this->is_markdown_table_block( $part ) ) {
+				$result[] = $part;
+				continue;
+			}
+
+			$current_table = $this->markdown_table_block_lines( $part );
+
+			while ( $index + 2 < $count && preg_match( '/^\n{2,}$/', $parts[ $index + 1 ] ) && $this->is_markdown_table_block( $parts[ $index + 2 ] ) ) {
+				$next_table = $this->markdown_table_block_lines( $parts[ $index + 2 ] );
+
+				if ( ! $this->can_merge_adjacent_markdown_tables( $current_table, $next_table ) ) {
+					break;
+				}
+
+				$current_table = $this->merge_markdown_table_blocks( $current_table, $next_table );
+				$index        += 2;
+			}
+
+			$result[] = implode( "\n", $current_table );
+		}
+
+		return implode( '', $result );
+	}
+
+	/**
+	 * Determine whether a markdown block is a pipe table.
+	 *
+	 * @param string $block Markdown block.
+	 *
+	 * @return bool
+	 */
+	protected function is_markdown_table_block( string $block ): bool {
+		$lines = $this->markdown_table_block_lines( $block );
+
+		if ( count( $lines ) < 2 ) {
+			return false;
+		}
+
+		if ( ! $this->is_markdown_table_row( $lines[0] ) || ! $this->is_markdown_table_separator_row( $lines[1] ) ) {
+			return false;
+		}
+
+		foreach ( array_slice( $lines, 2 ) as $line ) {
+			if ( ! $this->is_markdown_table_row( $line ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Split a markdown table block into normalized lines.
+	 *
+	 * @param string $block Markdown block.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function markdown_table_block_lines( string $block ): array {
+		$lines = preg_split( '/\r\n|\r|\n/', trim( $block ) );
+		return array_values( array_filter( array_map( 'trim', $lines ), 'strlen' ) );
+	}
+
+	/**
+	 * Determine whether two adjacent table blocks should be merged.
+	 *
+	 * @param array<int, string> $primary_table Primary table lines.
+	 * @param array<int, string> $next_table Next table lines.
+	 *
+	 * @return bool
+	 */
+	protected function can_merge_adjacent_markdown_tables( array $primary_table, array $next_table ): bool {
+		if ( 2 !== count( $primary_table ) || count( $next_table ) < 3 ) {
+			return false;
+		}
+
+		return $this->count_markdown_table_columns( $primary_table[0] ) === $this->count_markdown_table_columns( $next_table[0] );
+	}
+
+	/**
+	 * Merge a header-only table block with a following body-only table block.
+	 *
+	 * @param array<int, string> $primary_table Primary table lines.
+	 * @param array<int, string> $next_table Next table lines.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function merge_markdown_table_blocks( array $primary_table, array $next_table ): array {
+		return array_merge(
+			$primary_table,
+			[ $next_table[0] ],
+			array_slice( $next_table, 2 )
+		);
+	}
+
+	/**
+	 * Determine whether a line is a Markdown table row.
+	 *
+	 * @param string $line Markdown line.
+	 *
+	 * @return bool
+	 */
+	protected function is_markdown_table_row( string $line ): bool {
+		$line = trim( $line );
+
+		return preg_match( '/^\|.*\|$/', $line ) && $this->count_markdown_table_columns( $line ) > 0;
+	}
+
+	/**
+	 * Determine whether a line is a Markdown table separator row.
+	 *
+	 * @param string $line Markdown line.
+	 *
+	 * @return bool
+	 */
+	protected function is_markdown_table_separator_row( string $line ): bool {
+		$columns = preg_split( '/(?<!\\\\)\|/', trim( trim( $line ), '|' ) );
+
+		if ( empty( $columns ) ) {
+			return false;
+		}
+
+		foreach ( $columns as $column ) {
+			$column = trim( $column );
+
+			if ( '' === $column || ! preg_match( '/^:?-{3,}:?$/', $column ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Count the number of columns in a Markdown table row.
+	 *
+	 * @param string $line Markdown row.
+	 *
+	 * @return int
+	 */
+	protected function count_markdown_table_columns( string $line ): int {
+		$columns = preg_split( '/(?<!\\\\)\|/', trim( trim( $line ), '|' ) );
+		$columns = array_filter( array_map( 'trim', $columns ), static fn( string $column ): bool => '' !== $column || '|' === trim( $line ) );
+
+		return count( $columns );
 	}
 
 	/**

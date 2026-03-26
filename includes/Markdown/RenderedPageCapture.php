@@ -103,6 +103,10 @@ class RenderedPageCapture {
 		$GLOBALS['wp_the_query'] = $query;
 		setup_postdata( $query->post );
 
+		if ( method_exists( $query, 'rewind_posts' ) ) {
+			$query->rewind_posts();
+		}
+
 		$html = '';
 
 		try {
@@ -208,13 +212,30 @@ class RenderedPageCapture {
 	 * @return string
 	 */
 	public function capture_filtered_content_fragment( \WP_Post $post ) {
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- the_content is a core WordPress hook.
-		$content = apply_filters( 'the_content', $post->post_content );
-		$content = (string) $content;
+		$original_post = $GLOBALS['post'] ?? null;
 
-		if ( empty( trim( wp_strip_all_tags( $content ) ) ) ) {
-			$content = do_blocks( $post->post_content );
-			$content = do_shortcode( (string) $content );
+		try {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Temporarily setting the current post is required for dynamic block rendering in filtered-content fallback.
+			$GLOBALS['post'] = $post;
+			setup_postdata( $post );
+
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- the_content is a core WordPress hook.
+			$content = apply_filters( 'the_content', $post->post_content );
+			$content = (string) $content;
+
+			if ( empty( trim( wp_strip_all_tags( $content ) ) ) ) {
+				$content = do_blocks( $post->post_content );
+				$content = do_shortcode( (string) $content );
+			}
+		} finally {
+			if ( $original_post instanceof \WP_Post ) {
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring the original post after filtered-content fallback rendering.
+				$GLOBALS['post'] = $original_post;
+				setup_postdata( $original_post );
+			} else {
+				wp_reset_postdata();
+				unset( $GLOBALS['post'] );
+			}
 		}
 
 		$content = $this->sanitize_filtered_content_fragment( $content, $post );
@@ -259,7 +280,10 @@ class RenderedPageCapture {
 			return '';
 		}
 
-		$content = trim( $content );
+		$content = $this->strip_filtered_content_artifacts( trim( $content ) );
+		if ( empty( trim( $content ) ) ) {
+			return '';
+		}
 
 		if ( ! $this->is_valid_rendered_html( $content ) ) {
 			return '';
@@ -280,6 +304,20 @@ class RenderedPageCapture {
 		 * @param \WP_Post|null $post    Optional post object.
 		 */
 		return (string) apply_filters( 'aisignal_markdown_filtered_content_fragment', $content, $post );
+	}
+
+	/**
+	 * Strip residual source artifacts that can remain inside otherwise rendered HTML.
+	 *
+	 * @param string $content Rendered HTML fragment.
+	 *
+	 * @return string
+	 */
+	protected function strip_filtered_content_artifacts( string $content ) {
+		$content = preg_replace( '/<!--\s*\/?wp:[\s\S]*?-->/', '', $content );
+		$content = preg_replace( '/&lt;!--\s*\/?wp:[\s\S]*?--&gt;/', '', $content );
+
+		return trim( (string) $content );
 	}
 
 	/**

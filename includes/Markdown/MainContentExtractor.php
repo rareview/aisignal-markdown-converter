@@ -25,6 +25,13 @@ class MainContentExtractor {
 	protected $hint_selectors = [
 		'main',
 		'[role="main"]',
+		'#primary',
+		'#content',
+		'.site-main',
+		'.content-area',
+		'.entry-content',
+		'.page-content',
+		'.post-content',
 		'article',
 	];
 
@@ -52,7 +59,15 @@ class MainContentExtractor {
 			return $html;
 		}
 
-		$body_node  = $body->item( 0 );
+		$body_node = $body->item( 0 );
+		$preferred = $this->find_preferred_content_node( $xpath, $post );
+		if ( $preferred instanceof \DOMElement ) {
+			$preferred_html = $this->get_inner_html( $preferred );
+			if ( ! empty( trim( $preferred_html ) ) ) {
+				return $preferred_html;
+			}
+		}
+
 		$hint_bonus = $this->build_hint_bonus_map( $xpath, $post );
 		$candidates = $this->collect_candidates( $xpath, $body_node, $hint_bonus, $post );
 
@@ -120,15 +135,6 @@ class MainContentExtractor {
 		$node_list  = $xpath->query( $query, $body_node );
 		$candidates = [];
 
-		if ( $body_node instanceof \DOMElement ) {
-			$node_path                = $body_node->getNodePath();
-			$candidates[ $node_path ] = [
-				'node'  => $body_node,
-				'depth' => 0,
-				'score' => $this->score_candidate( $body_node, $xpath, $hint_bonus[ $node_path ] ?? 0, $post ),
-			];
-		}
-
 		if ( ! $node_list instanceof \DOMNodeList ) {
 			return array_values( array_filter( $candidates, [ $this, 'has_viable_score' ] ) );
 		}
@@ -140,6 +146,10 @@ class MainContentExtractor {
 
 			$node_path = $node->getNodePath();
 			if ( isset( $candidates[ $node_path ] ) ) {
+				continue;
+			}
+
+			if ( $this->is_excluded_container( $node, $post, true ) ) {
 				continue;
 			}
 
@@ -156,6 +166,48 @@ class MainContentExtractor {
 		}
 
 		return array_values( array_filter( $candidates, [ $this, 'has_viable_score' ] ) );
+	}
+
+	/**
+	 * Find a preferred main-content node using deterministic selectors.
+	 *
+	 * @param \DOMXPath     $xpath XPath helper.
+	 * @param \WP_Post|null $post Optional post object.
+	 *
+	 * @return \DOMElement|null
+	 */
+	protected function find_preferred_content_node( \DOMXPath $xpath, ?\WP_Post $post = null ) {
+		$selectors = apply_filters( 'aisignal_markdown_main_content_selectors', $this->hint_selectors, $post );
+
+		foreach ( $selectors as $selector ) {
+			$query = $this->selector_to_xpath( (string) $selector );
+			if ( empty( $query ) ) {
+				continue;
+			}
+
+			$nodes = $xpath->query( $query );
+			if ( ! $nodes instanceof \DOMNodeList ) {
+				continue;
+			}
+
+			foreach ( $nodes as $node ) {
+				if ( ! $node instanceof \DOMElement ) {
+					continue;
+				}
+
+				if ( $this->is_excluded_container( $node, $post, true ) ) {
+					continue;
+				}
+
+				if ( empty( trim( $this->get_node_text_content( $node ) ) ) ) {
+					continue;
+				}
+
+				return $node;
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -203,6 +255,38 @@ class MainContentExtractor {
 		}
 
 		return $bonus_map;
+	}
+
+	/**
+	 * Get container tokens that indicate page chrome rather than content.
+	 *
+	 * @param \WP_Post|null $post Optional post object.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_excluded_container_tokens( ?\WP_Post $post = null ) {
+		return apply_filters(
+			'aisignal_markdown_excluded_container_tokens',
+			[
+				'nav',
+				'menu',
+				'sidebar',
+				'header',
+				'footer',
+				'breadcrumb',
+				'breadcrumbs',
+				'pagination',
+				'pager',
+				'comment',
+				'comments',
+				'cookie',
+				'cookies',
+				'modal',
+				'popup',
+				'dialog',
+			],
+			$post
+		);
 	}
 
 	/**
@@ -357,28 +441,12 @@ class MainContentExtractor {
 	 * @return int
 	 */
 	protected function get_noise_penalty( \DOMElement $node ) {
-		$tokens = $this->get_attribute_tokens( $node );
+		$tokens = $this->get_element_tokens( $node );
 		if ( empty( $tokens ) ) {
 			return 0;
 		}
 
-		$patterns = [
-			'nav',
-			'menu',
-			'sidebar',
-			'footer',
-			'comment',
-			'comments',
-			'breadcrumb',
-			'breadcrumbs',
-			'pagination',
-			'pager',
-			'cookie',
-			'cookies',
-			'modal',
-			'popup',
-			'dialog',
-		];
+		$patterns = $this->get_excluded_container_tokens();
 		$penalty  = 0;
 
 		foreach ( $patterns as $pattern ) {
@@ -431,6 +499,66 @@ class MainContentExtractor {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Get normalized element tokens including the tag name.
+	 *
+	 * @param \DOMElement $node Candidate node.
+	 *
+	 * @return array
+	 */
+	protected function get_element_tokens( \DOMElement $node ) {
+		$tokens   = $this->get_attribute_tokens( $node );
+		$role     = strtolower( trim( $node->getAttribute( 'role' ) ) );
+		$tag_name = strtolower( $this->get_tag_name( $node ) );
+
+		if ( 'navigation' === $role ) {
+			$tokens[] = 'nav';
+		} elseif ( 'complementary' === $role ) {
+			$tokens[] = 'sidebar';
+		} elseif ( 'banner' === $role ) {
+			$tokens[] = 'header';
+		} elseif ( 'contentinfo' === $role ) {
+			$tokens[] = 'footer';
+		}
+
+		if ( '' !== $tag_name ) {
+			$tokens[] = $tag_name;
+		}
+
+		return array_values( array_unique( $tokens ) );
+	}
+
+	/**
+	 * Determine whether a node or its ancestors are excluded chrome containers.
+	 *
+	 * @param \DOMElement   $node Candidate node.
+	 * @param \WP_Post|null $post Optional post object.
+	 * @param bool          $include_ancestors Whether ancestor tokens should be checked.
+	 *
+	 * @return bool
+	 */
+	protected function is_excluded_container( \DOMElement $node, ?\WP_Post $post = null, bool $include_ancestors = false ) {
+		$tokens  = array_map( 'strtolower', $this->get_excluded_container_tokens( $post ) );
+		$current = $node;
+
+		while ( $current instanceof \DOMElement ) {
+			$current_tokens = $this->get_element_tokens( $current );
+			foreach ( $tokens as $token ) {
+				if ( in_array( $token, $current_tokens, true ) ) {
+					return true;
+				}
+			}
+
+			if ( ! $include_ancestors ) {
+				break;
+			}
+
+			$current = $this->get_parent_element( $current );
+		}
+
+		return false;
 	}
 
 	/**
@@ -497,6 +625,18 @@ class MainContentExtractor {
 		$parent = $node->parentNode;
 
 		return $parent instanceof \DOMElement ? $parent : null;
+	}
+
+	/**
+	 * Get the tag name for an element.
+	 *
+	 * @param \DOMElement $node Element node.
+	 *
+	 * @return string
+	 */
+	protected function get_tag_name( \DOMElement $node ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native DOM property.
+		return (string) $node->tagName;
 	}
 
 	/**
