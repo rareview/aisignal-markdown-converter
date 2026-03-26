@@ -671,7 +671,7 @@ class MarkdownConverter {
 	 * @return string
 	 */
 	protected function normalize_text_for_comparison( $content ) {
-		$text = html_entity_decode( wp_strip_all_tags( (string) $content ), ENT_QUOTES, 'UTF-8' );
+		$text = html_entity_decode( $this->strip_markdown_for_plain_text( (string) $content ), ENT_QUOTES, 'UTF-8' );
 		$text = strtolower( trim( preg_replace( '/\s+/u', ' ', $text ) ) );
 
 		return $text;
@@ -705,8 +705,46 @@ class MarkdownConverter {
 			return false;
 		}
 
-		$probe = substr( $shorter, 0, min( 160, strlen( $shorter ) ) );
-		return str_contains( $longer, $probe );
+		foreach ( $this->build_overlap_probes( $shorter ) as $probe ) {
+			if ( '' !== $probe && str_contains( $longer, $probe ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Build substantial overlap probes from a text fragment.
+	 *
+	 * @param string $text Source text.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function build_overlap_probes( string $text ): array {
+		$probe_length = min( 160, strlen( $text ) );
+		if ( $probe_length < 80 ) {
+			return [];
+		}
+
+		$max_offset = max( 0, strlen( $text ) - $probe_length );
+		$offsets    = array_unique(
+			[
+				0,
+				(int) floor( $max_offset / 2 ),
+				$max_offset,
+			]
+		);
+		$probes     = [];
+
+		foreach ( $offsets as $offset ) {
+			$probe = trim( substr( $text, $offset, $probe_length ) );
+			if ( strlen( $probe ) >= 80 ) {
+				$probes[] = $probe;
+			}
+		}
+
+		return $probes;
 	}
 
 	/**
