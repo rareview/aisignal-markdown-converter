@@ -145,9 +145,21 @@ class MarkdownEndpoint {
 
 		$post = get_queried_object();
 
-		if ( ! $post instanceof \WP_Post ) {
-			$post = $this->resolve_post_from_request();
+		if ( $post instanceof \WP_Post ) {
+			if ( ! $this->is_markdown_type_enabled( $post ) ) {
+				status_header( 403 );
+				echo "# Not Available\n\nMarkdown is not enabled for this content type.\n";
+				exit;
+			}
+
+			$this->send_markdown_response( $this->get_converter()->convert_post_full( $post ) );
 		}
+
+		if ( is_object( $post ) ) {
+			return;
+		}
+
+		$post = $this->resolve_post_from_request();
 
 		if ( ! $post ) {
 			status_header( 404 );
@@ -160,8 +172,8 @@ class MarkdownEndpoint {
 			echo "# Not Available\n\nMarkdown is not enabled for this content type.\n";
 			exit;
 		}
-		$markdown = $this->get_converter()->convert_post_full( $post );
-		$this->send_markdown_response( $markdown );
+
+		$this->send_markdown_response( $this->get_converter()->convert_post_full( $post ) );
 	}
 
 	/**
