@@ -2,62 +2,62 @@
 /**
  * Helpers class.
  *
- * @author Rareview <hello@rareview.com>
- *
- * @package RV Plugin Starter
+ * @package AiSignalMarkdown
  */
 
-namespace RvPluginStarter\Inc;
+namespace AiSignalMarkdown\Inc;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
- * Class Registry
+ * Shared helper methods.
  */
 class Helpers {
 
-    /**
-     * Plugin assets manifest.
-     *
-     * @var array
-     */
-    protected static $manifest;
+	/**
+	 * Plugin version.
+	 *
+	 * @return string
+	 */
+	public static function version(): string {
+		return AISIGNAL_MARKDOWN_VERSION;
+	}
 
-    /**
-     * Plugin version.
-     *
-     * @return string Template version.
-     */
-    public static function version() {
-        return '1.0.0';
-    }
+	/**
+	 * Get enabled post types for Markdown output.
+	 *
+	 * @param string $feature Feature key.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function get_enabled_post_types( string $feature = 'markdown' ): array {
+		if ( 'markdown' !== $feature ) {
+			return [];
+		}
 
-    /**
-     * Get the name of the asset file from the generated manifest file.
-     *
-     * @param string $file Asset file to retrieve.
-     *
-     * @return string Asset name.
-     */
-    public static function asset_name( $file ) {
-        if ( ! static::$manifest ) {
-            $directory        = WP_CONTENT_DIR . '/plugins/plugin-starter/dist';
-            static::$manifest = json_decode( file_get_contents( "{$directory}/manifest.json" ), true );
-        }
+		$option = get_option( 'aisignal_markdown_post_types', [ 'post', 'page' ] );
+		return is_array( $option ) ? $option : [ 'post', 'page' ];
+	}
 
-        if ( ! isset( static::$manifest[ $file ] ) ) {
-            return $file;
-        }
+	/**
+	 * Check whether a feature is enabled.
+	 *
+	 * @param string $feature Feature key.
+	 *
+	 * @return bool
+	 */
+	public static function is_enabled( string $feature ): bool {
+		return 'markdown' === $feature;
+	}
 
-        return static::$manifest[ $file ];
-    }
-
-    /**
-     * Gets the assets url, useful for defining asset source files.
-     *
-     * @param string $file Asset file to retrieve.
-     *
-     * @return string Asset url.
-     */
-    public static function asset_url( $file ) {
-        return \set_url_scheme( WP_CONTENT_URL . '/plugins/plugin-starter/dist/' . self::asset_name( $file ) );
-    }
+	/**
+	 * Markdown response content type.
+	 *
+	 * @return string
+	 */
+	public static function markdown_content_type(): string {
+		return 'text/markdown; charset=UTF-8';
+	}
 }

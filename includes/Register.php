@@ -2,62 +2,74 @@
 /**
  * Register class.
  *
- * @author Rareview <hello@rareview.com>
- *
- * @package RV Plugin Starter
+ * @package AiSignalMarkdown
  */
 
-namespace RvPluginStarter\Inc;
+namespace AiSignalMarkdown\Inc;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
- * Class Registry
+ * Runtime registration hooks.
  */
 class Register {
 
-    const PREFIX = 'rv-plugin-starter';
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		add_action( 'wp_head', [ $this, 'add_markdown_link_tag' ] );
+		add_action( 'send_headers', [ $this, 'add_markdown_link_header' ] );
+	}
 
-    /**
-     * Constructor.
-     */
-    public function __construct() {
-        $this->register_frontend_assets();
-        $this->register_editor_assets();
-    }
+	/**
+	 * Add the markdown alternate link tag in the document head.
+	 *
+	 * @return void
+	 */
+	public function add_markdown_link_tag(): void {
+		$url = $this->get_markdown_url();
+		if ( '' === $url ) {
+			return;
+		}
 
-    /**
-     * Register frontend assets.
-     *
-     * @return void
-     */
-    public function register_frontend_assets() {
-        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
-    }
+		echo '<link rel="alternate" type="text/markdown" href="' . esc_url( $url ) . '">' . "\n";
+	}
 
-    /**
-     * Register editor assets.
-     *
-     * @return void
-     */
-    public function register_editor_assets() {
-        add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
-    }
+	/**
+	 * Add the markdown alternate link HTTP header.
+	 *
+	 * @return void
+	 */
+	public function add_markdown_link_header(): void {
+		if ( headers_sent() ) {
+			return;
+		}
 
-    /**
-     * Enqueue frontend assets.
-     *
-     * @return void
-     */
-    public function enqueue_frontend_assets() {
-        wp_enqueue_style( self::PREFIX . '-styles', Helpers::asset_url( 'styles.css' ), [], Helpers::version() );
-        wp_enqueue_script( self::PREFIX . '-script', Helpers::asset_url( 'script.js' ), [], Helpers::version(), true );
-    }
+		$url = $this->get_markdown_url();
+		if ( '' === $url ) {
+			return;
+		}
 
-    /**
-     * Enqueue editor assets.
-     *
-     * @return void
-     */
-    public function enqueue_editor_assets() {
-        wp_enqueue_script( self::PREFIX . '-editor-script', Helpers::asset_url( 'editor.js' ), ['wp-blocks', 'wp-dom-ready', 'wp-edit-post'], Helpers::version(), true );
-    }
+		header( 'Link: <' . esc_url( $url ) . '>; rel="alternate"; type="text/markdown"', false );
+	}
+
+	/**
+	 * Resolve the markdown URL for the current request.
+	 *
+	 * @return string
+	 */
+	protected function get_markdown_url(): string {
+		if ( is_singular() ) {
+			return add_query_arg( 'format', 'markdown', get_permalink() );
+		}
+
+		if ( is_front_page() || is_home() ) {
+			return add_query_arg( 'format', 'markdown', home_url( '/' ) );
+		}
+
+		return '';
+	}
 }

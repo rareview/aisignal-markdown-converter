@@ -1,17 +1,33 @@
 {
-    "name": "rareview/rv-plugin-starter",
-    "description": "RV Plugin Starter WordPress plugin.",
+    "name": "rareview/aisignal-markdown",
+    "description": "AI Signal Markdown WordPress plugin.",
     "version": "1.0.0",
+    "require": {
+        "php": ">=8.0"
+    },
     "authors": [
         {
             "name": "Rareview",
-            "email": "hellow@rareview.com"
+            "email": "hello@rareview.com"
         }
     ],
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
+        "phpcompatibility/phpcompatibility-wp": "^2.1.8",
+        "wp-coding-standards/wpcs": "^3.3"
+    },
+    "scripts": {
+        "lint": "vendor/bin/phpcs --standard=.phpcs.xml; exit",
+        "format": "sh -c 'vendor/bin/phpcbf --standard=.phpcs.xml; code=$?; if [ \"$code\" -gt 1 ]; then exit \"$code\"; fi'"
+    },
     "autoload": {
         "psr-4": {
-            "RvPluginStarter\\": "",
-            "RvPluginStarter\\Inc\\": "includes/"
+            "AiSignalMarkdown\\Inc\\": "includes/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     }
 }
