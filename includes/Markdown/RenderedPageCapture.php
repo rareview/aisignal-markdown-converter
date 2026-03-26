@@ -45,7 +45,11 @@ class RenderedPageCapture {
 	 * @return string
 	 */
 	public function capture_post_html( \WP_Post $post ) {
-		$html = $this->capture_via_template( $post );
+		$html = $this->capture_via_core_template_enhancement( $post );
+
+		if ( ! $this->is_valid_rendered_html( $html ) || ! $this->has_meaningful_markup( $html ) ) {
+			$html = $this->capture_via_template( $post );
+		}
 
 		if ( $this->is_valid_rendered_html( $html ) && $this->has_meaningful_markup( $html ) ) {
 			/**
@@ -67,7 +71,52 @@ class RenderedPageCapture {
 	 *
 	 * @return string
 	 */
+	protected function capture_via_core_template_enhancement( \WP_Post $post ) {
+		if ( ! $this->supports_template_enhancement_capture() ) {
+			return '';
+		}
+
+		return $this->capture_with_template_context(
+			$post,
+			function ( string $template ) {
+				if ( empty( $template ) || ! file_exists( $template ) ) {
+					return '';
+				}
+
+				return $this->capture_template_output( $template, true );
+			}
+		);
+	}
+
+	/**
+	 * Capture fully rendered template output for a singular post.
+	 *
+	 * @param \WP_Post $post Post object.
+	 *
+	 * @return string
+	 */
 	protected function capture_via_template( \WP_Post $post ) {
+		return $this->capture_with_template_context(
+			$post,
+			function ( string $template ) use ( $post ) {
+				if ( ! empty( $template ) && file_exists( $template ) ) {
+					return $this->capture_template_output( $template );
+				}
+
+				return $this->capture_filtered_content_html( $post );
+			}
+		);
+	}
+
+	/**
+	 * Capture rendered output while a singular query context is active.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param callable $callback Capture callback.
+	 *
+	 * @return string
+	 */
+	protected function capture_with_template_context( \WP_Post $post, callable $callback ) {
 		global $wp_query, $wp_the_query;
 
 		$original_post         = $GLOBALS['post'] ?? null;
@@ -107,23 +156,10 @@ class RenderedPageCapture {
 			$query->rewind_posts();
 		}
 
-		$html = '';
-
 		try {
 			$template = $this->resolve_template( $post );
-
-			ob_start();
-			if ( ! empty( $template ) && file_exists( $template ) ) {
-				include $template;
-			} else {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered HTML capture for markdown generation.
-				echo $this->capture_filtered_content_html( $post );
-			}
-			$html = (string) ob_get_clean();
+			$html     = (string) $callback( (string) $template );
 		} catch ( \Throwable $error ) {
-			if ( ob_get_level() > 0 ) {
-				ob_end_clean();
-			}
 			$html = '';
 		}
 
@@ -136,6 +172,101 @@ class RenderedPageCapture {
 		$GLOBALS['wp_the_query'] = $original_wp_the_query;
 
 		return $html;
+	}
+
+	/**
+	 * Capture template output, optionally routing it through the core enhancement finalizer.
+	 *
+	 * @param string $template Template path.
+	 * @param bool   $enhance_with_core Whether to finalize via the WordPress core enhancement pipeline.
+	 *
+	 * @return string
+	 */
+	protected function capture_template_output( string $template, bool $enhance_with_core = false ) {
+		$buffer_level = ob_get_level();
+
+		try {
+			ob_start();
+
+			if ( $enhance_with_core ) {
+				$this->run_before_include_template_actions( $template );
+				if ( function_exists( 'do_action' ) ) {
+					do_action( 'wp_template_enhancement_output_buffer_started' );
+				}
+			}
+
+			include $template;
+			$html = (string) ob_get_clean();
+		} catch ( \Throwable $error ) {
+			while ( ob_get_level() > $buffer_level ) {
+				ob_end_clean();
+			}
+
+			return '';
+		}
+
+		if ( $enhance_with_core ) {
+			$html = $this->finalize_template_enhancement_output( $html, $template );
+		}
+
+		return $html;
+	}
+
+	/**
+	 * Determine whether the runtime can reuse core template-enhancement finalization.
+	 *
+	 * @return bool
+	 */
+	protected function supports_template_enhancement_capture() {
+		return function_exists( 'wp_finalize_template_enhancement_output_buffer' );
+	}
+
+	/**
+	 * Run pre-template hooks without letting core open its own enhancement buffer.
+	 *
+	 * @param string $template Template path.
+	 *
+	 * @return void
+	 */
+	protected function run_before_include_template_actions( string $template ) {
+		if ( ! function_exists( 'do_action' ) ) {
+			return;
+		}
+
+		$core_buffer_callback_removed = false;
+
+		if ( function_exists( 'has_action' ) && function_exists( 'remove_action' ) && function_exists( 'add_action' ) ) {
+			$core_buffer_callback_removed = false !== has_action( 'wp_before_include_template', 'wp_start_template_enhancement_output_buffer' );
+			if ( $core_buffer_callback_removed ) {
+				remove_action( 'wp_before_include_template', 'wp_start_template_enhancement_output_buffer', 1000 );
+			}
+		}
+
+		try {
+			do_action( 'wp_before_include_template', $template );
+		} finally {
+			if ( $core_buffer_callback_removed && function_exists( 'add_action' ) ) {
+				add_action( 'wp_before_include_template', 'wp_start_template_enhancement_output_buffer', 1000 );
+			}
+		}
+	}
+
+	/**
+	 * Finalize captured template output through the core enhancement pipeline.
+	 *
+	 * @param string $html Captured HTML output.
+	 * @param string $template Template path.
+	 *
+	 * @return string
+	 */
+	protected function finalize_template_enhancement_output( string $html, string $template ) {
+		unset( $template );
+
+		if ( ! function_exists( 'wp_finalize_template_enhancement_output_buffer' ) ) {
+			return $html;
+		}
+
+		return (string) wp_finalize_template_enhancement_output_buffer( $html, PHP_OUTPUT_HANDLER_FINAL );
 	}
 
 	/**

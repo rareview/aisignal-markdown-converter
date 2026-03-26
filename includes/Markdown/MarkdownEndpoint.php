@@ -253,14 +253,33 @@ class MarkdownEndpoint {
 	 */
 	protected function send_markdown_response( $markdown ) {
 		status_header( 200 );
-		header( 'Content-Type: ' . Helpers::markdown_content_type() );
-		header( 'X-Content-Type-Options: nosniff' );
-		header( 'X-AISignal-Markdown: ' . AISIGNAL_MARKDOWN_VERSION );
-		header( 'Cache-Control: public, max-age=3600' );
+		foreach ( $this->build_markdown_response_headers() as $header_line ) {
+			header( $header_line );
+		}
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo $markdown;
 		exit;
+	}
+
+	/**
+	 * Build the standard markdown response headers.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function build_markdown_response_headers() {
+		$headers = [
+			'Content-Type: ' . Helpers::markdown_content_type(),
+			'X-Content-Type-Options: nosniff',
+			'X-AISignal-Markdown: ' . AISIGNAL_MARKDOWN_VERSION,
+			'Cache-Control: public, max-age=3600',
+		];
+
+		if ( $this->wants_markdown_response() ) {
+			$headers[] = 'Vary: Accept';
+		}
+
+		return $headers;
 	}
 
 	/**
