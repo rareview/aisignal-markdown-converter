@@ -353,11 +353,6 @@ class RenderedPageCapture {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- the_content is a core WordPress hook.
 			$content = apply_filters( 'the_content', $post->post_content );
 			$content = (string) $content;
-
-			if ( empty( trim( wp_strip_all_tags( $content ) ) ) ) {
-				$content = do_blocks( $post->post_content );
-				$content = do_shortcode( (string) $content );
-			}
 		} finally {
 			if ( $original_post instanceof \WP_Post ) {
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring the original post after filtered-content fallback rendering.

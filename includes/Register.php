@@ -7,6 +7,8 @@
 
 namespace AiSignalMarkdown\Inc;
 
+use AiSignalMarkdown\Inc\Markdown\MarkdownAvailability;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -62,19 +64,51 @@ class Register {
 	 * @return string
 	 */
 	protected function get_markdown_url(): string {
+		$url     = '';
+		$context = [
+			'request_type' => 'other',
+		];
+
 		if ( is_singular() ) {
 			$post = get_queried_object();
-			if ( $post instanceof \WP_Post && ! in_array( $post->post_type, Helpers::get_enabled_post_types( 'markdown' ), true ) ) {
+			if ( ! $post instanceof \WP_Post ) {
 				return '';
 			}
 
-			return add_query_arg( 'format', 'markdown', get_permalink() );
+			$availability = MarkdownAvailability::get_markdown_availability( $post );
+			if ( empty( $availability['markdown_available'] ) ) {
+				return '';
+			}
+
+			$context = [
+				'request_type' => 'singular',
+				'post'         => $post,
+			];
+			$url     = add_query_arg( 'format', 'markdown', get_permalink() );
+		} elseif ( is_front_page() || is_home() ) {
+			$context = [
+				'request_type' => 'home',
+			];
+			$url     = add_query_arg( 'format', 'markdown', home_url( '/' ) );
 		}
 
-		if ( is_front_page() || is_home() ) {
-			return add_query_arg( 'format', 'markdown', home_url( '/' ) );
-		}
+		/**
+		 * Filter the discovered Markdown URL for the current request.
+		 *
+		 * @param string              $url     Markdown URL, or empty string when unavailable.
+		 * @param array<string,mixed> $context Discovery context.
+		 */
+		$url = (string) apply_filters( 'aisignal_markdown_url', $url, $context );
 
-		return '';
+		/**
+		 * Filter whether alternate Markdown discovery should be exposed for the current request.
+		 *
+		 * @param bool                $enabled Whether discovery should be exposed.
+		 * @param string              $url     Markdown URL after filtering.
+		 * @param array<string,mixed> $context Discovery context.
+		 */
+		$enabled = (bool) apply_filters( 'aisignal_markdown_discovery_enabled', '' !== $url, $url, $context );
+
+		return $enabled ? $url : '';
 	}
 }

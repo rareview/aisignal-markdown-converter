@@ -119,64 +119,11 @@ class MarkdownConverter {
 			return '';
 		}
 
-		$output    = '';
-		$title     = html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' );
-		$parts     = [ '# ' . $title, '' ];
-		$meta      = [];
-		$author    = get_the_author_meta( 'display_name', $post->post_author );
-		$date      = get_the_date( 'F j, Y', $post );
-		$body_md   = $this->get_body_markdown( $post );
-		$thumb_id  = get_post_thumbnail_id( $post );
-		$body_md   = preg_replace( '/^#\s+' . preg_quote( $title, '/' ) . '\s*\n+/i', '', trim( $body_md ) );
-		$yaml_head = '';
+		$title   = html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' );
+		$body_md = $this->prepare_document_body_markdown( $post, $title );
+		$parts   = $this->build_document_parts( $post, $title, $body_md );
 
-		if ( Helpers::is_frontmatter_enabled() ) {
-			$yaml_head = $this->frontmatter_builder->build( $post, $body_md );
-		} else {
-			if ( ! empty( $author ) ) {
-				$meta[] = 'By ' . $author;
-			}
-
-			if ( ! empty( $date ) ) {
-				$meta[] = $date;
-			}
-
-			if ( ! empty( $meta ) ) {
-				$parts[] = '*' . implode( ' | ', $meta ) . '*';
-				$parts[] = '';
-			}
-		}
-
-		if ( $thumb_id ) {
-			$image_url = wp_get_attachment_url( $thumb_id );
-			$image_alt = get_post_meta( $thumb_id, '_wp_attachment_image_alt', true );
-			if ( ! empty( $image_url ) && $this->should_prepend_featured_image( $body_md, $image_url, (int) $thumb_id ) ) {
-				$parts[] = '![' . ( $image_alt ?: $title ) . '](' . $image_url . ')';
-				$parts[] = '';
-			}
-		}
-
-		if ( ! Helpers::is_frontmatter_enabled() ) {
-			$parts[] = '---';
-			$parts[] = '';
-		}
-
-		$parts[] = $body_md;
-
-		$categories = get_the_category( $post->ID );
-		if ( ! empty( $categories ) ) {
-			$parts[] = '';
-			$parts[] = '**Categories:** ' . implode( ', ', wp_list_pluck( $categories, 'name' ) );
-		}
-
-		$tags = get_the_tags( $post->ID );
-		if ( ! empty( $tags ) ) {
-			$parts[] = '**Tags:** ' . implode( ', ', wp_list_pluck( $tags, 'name' ) );
-		}
-
-		$output .= $yaml_head . implode( "\n", $parts );
-
-		return $output;
+		return $this->build_document_frontmatter( $post, $body_md ) . implode( "\n", $this->append_post_term_summaries( $parts, $post ) );
 	}
 
 	/**
@@ -288,37 +235,216 @@ class MarkdownConverter {
 	 * @return string
 	 */
 	protected function generate_post_markdown( \WP_Post $post ) {
-		$base_url     = get_permalink( $post );
-		$markdown     = '';
-		$primary_html = $this->capture->capture_post_html( $post );
+		$base_url = get_permalink( $post );
+		$markdown = $this->convert_rendered_post_html_to_markdown( $post, $base_url );
 
-		if ( ! empty( trim( wp_strip_all_tags( $primary_html ) ) ) ) {
-			$extracted_html = $this->extractor->extract( $primary_html, $post );
-			if ( ! empty( trim( wp_strip_all_tags( $extracted_html ) ) ) ) {
-				$normalized_html = $this->normalizer->normalize_fragment( $extracted_html, $post );
-				$markdown        = $this->convert_html_fragment_to_markdown( $normalized_html, $base_url );
-			}
+		if ( $this->should_use_supplemental_fallback( $markdown ) ) {
+			$markdown = $this->merge_html_fragment_into_markdown(
+				$markdown,
+				$this->capture->capture_filtered_content_html( $post ),
+				$post,
+				$base_url
+			);
 		}
 
 		if ( $this->should_use_supplemental_fallback( $markdown ) ) {
-			$filtered_html = $this->capture->capture_filtered_content_html( $post );
-			if ( ! empty( trim( wp_strip_all_tags( $filtered_html ) ) ) ) {
-				$filtered_html = $this->normalizer->normalize_fragment( $filtered_html, $post );
-				$filtered_md   = $this->convert_html_fragment_to_markdown( $filtered_html, $base_url );
-				$markdown      = $this->merge_markdown_fragments( $markdown, $filtered_md );
-			}
-		}
-
-		if ( $this->should_use_supplemental_fallback( $markdown ) ) {
-			$supplemental_html = $this->supplemental_extractor->extract( $post );
-			if ( ! empty( trim( wp_strip_all_tags( $supplemental_html ) ) ) ) {
-				$supplemental_html = $this->normalizer->normalize_fragment( $supplemental_html, $post );
-				$supplemental_md   = $this->convert_html_fragment_to_markdown( $supplemental_html, $base_url );
-				$markdown          = $this->merge_markdown_fragments( $markdown, $supplemental_md );
-			}
+			$markdown = $this->merge_html_fragment_into_markdown(
+				$markdown,
+				$this->supplemental_extractor->extract( $post ),
+				$post,
+				$base_url
+			);
 		}
 
 		return trim( $markdown );
+	}
+
+	/**
+	 * Prepare body markdown for the full document wrapper.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param string   $title Document title.
+	 *
+	 * @return string
+	 */
+	protected function prepare_document_body_markdown( \WP_Post $post, string $title ): string {
+		$body_md = trim( $this->get_body_markdown( $post ) );
+
+		return (string) preg_replace( '/^#\s+' . preg_quote( $title, '/' ) . '\s*\n+/i', '', $body_md );
+	}
+
+	/**
+	 * Build the document frontmatter prefix.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param string   $body_md Body markdown.
+	 *
+	 * @return string
+	 */
+	protected function build_document_frontmatter( \WP_Post $post, string $body_md ): string {
+		if ( ! Helpers::is_frontmatter_enabled() ) {
+			return '';
+		}
+
+		return $this->frontmatter_builder->build( $post, $body_md );
+	}
+
+	/**
+	 * Build the main markdown document parts after frontmatter.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param string   $title Document title.
+	 * @param string   $body_md Body markdown.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function build_document_parts( \WP_Post $post, string $title, string $body_md ): array {
+		$parts = [ '# ' . $title, '' ];
+
+		$this->append_document_meta( $parts, $post );
+		$this->append_featured_image_markdown( $parts, $post, $title, $body_md );
+
+		if ( ! Helpers::is_frontmatter_enabled() ) {
+			$parts[] = '---';
+			$parts[] = '';
+		}
+
+		$parts[] = $body_md;
+
+		return $parts;
+	}
+
+	/**
+	 * Append author/date metadata when frontmatter is disabled.
+	 *
+	 * @param array<int, string> $parts Document parts.
+	 * @param \WP_Post           $post Post object.
+	 *
+	 * @return void
+	 */
+	protected function append_document_meta( array &$parts, \WP_Post $post ): void {
+		if ( Helpers::is_frontmatter_enabled() ) {
+			return;
+		}
+
+		$meta   = [];
+		$author = get_the_author_meta( 'display_name', $post->post_author );
+		$date   = get_the_date( 'F j, Y', $post );
+
+		if ( ! empty( $author ) ) {
+			$meta[] = 'By ' . $author;
+		}
+
+		if ( ! empty( $date ) ) {
+			$meta[] = $date;
+		}
+
+		if ( ! empty( $meta ) ) {
+			$parts[] = '*' . implode( ' | ', $meta ) . '*';
+			$parts[] = '';
+		}
+	}
+
+	/**
+	 * Append featured image markdown when it is not already in the body.
+	 *
+	 * @param array<int, string> $parts Document parts.
+	 * @param \WP_Post           $post Post object.
+	 * @param string             $title Document title.
+	 * @param string             $body_md Body markdown.
+	 *
+	 * @return void
+	 */
+	protected function append_featured_image_markdown( array &$parts, \WP_Post $post, string $title, string $body_md ): void {
+		$thumb_id = get_post_thumbnail_id( $post );
+		if ( ! $thumb_id ) {
+			return;
+		}
+
+		$image_url = wp_get_attachment_url( $thumb_id );
+		$image_alt = get_post_meta( $thumb_id, '_wp_attachment_image_alt', true );
+
+		if ( ! empty( $image_url ) && $this->should_prepend_featured_image( $body_md, $image_url, (int) $thumb_id ) ) {
+			$parts[] = '![' . ( $image_alt ?: $title ) . '](' . $image_url . ')';
+			$parts[] = '';
+		}
+	}
+
+	/**
+	 * Append category and tag summaries to the document.
+	 *
+	 * @param array<int, string> $parts Document parts.
+	 * @param \WP_Post           $post Post object.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function append_post_term_summaries( array $parts, \WP_Post $post ): array {
+		$categories = get_the_category( $post->ID );
+		if ( ! empty( $categories ) ) {
+			$parts[] = '';
+			$parts[] = '**Categories:** ' . implode( ', ', wp_list_pluck( $categories, 'name' ) );
+		}
+
+		$tags = get_the_tags( $post->ID );
+		if ( ! empty( $tags ) ) {
+			$parts[] = '**Tags:** ' . implode( ', ', wp_list_pluck( $tags, 'name' ) );
+		}
+
+		return $parts;
+	}
+
+	/**
+	 * Convert rendered post HTML into markdown.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param string   $base_url Base URL for link normalization.
+	 *
+	 * @return string
+	 */
+	protected function convert_rendered_post_html_to_markdown( \WP_Post $post, string $base_url ): string {
+		$primary_html = $this->capture->capture_post_html( $post );
+		if ( empty( trim( wp_strip_all_tags( $primary_html ) ) ) ) {
+			return '';
+		}
+
+		$extracted_html = $this->extractor->extract( $primary_html, $post );
+
+		return $this->convert_post_html_fragment_to_markdown( $extracted_html, $post, $base_url );
+	}
+
+	/**
+	 * Normalize and convert a post HTML fragment to markdown.
+	 *
+	 * @param string   $html HTML fragment.
+	 * @param \WP_Post $post Post object.
+	 * @param string   $base_url Base URL for link normalization.
+	 *
+	 * @return string
+	 */
+	protected function convert_post_html_fragment_to_markdown( string $html, \WP_Post $post, string $base_url ): string {
+		if ( empty( trim( wp_strip_all_tags( $html ) ) ) ) {
+			return '';
+		}
+
+		$normalized_html = $this->normalizer->normalize_fragment( $html, $post );
+
+		return $this->convert_html_fragment_to_markdown( $normalized_html, $base_url );
+	}
+
+	/**
+	 * Merge an HTML fragment into existing markdown output.
+	 *
+	 * @param string   $markdown Existing markdown.
+	 * @param string   $html HTML fragment.
+	 * @param \WP_Post $post Post object.
+	 * @param string   $base_url Base URL for link normalization.
+	 *
+	 * @return string
+	 */
+	protected function merge_html_fragment_into_markdown( string $markdown, string $html, \WP_Post $post, string $base_url ): string {
+		$candidate_md = $this->convert_post_html_fragment_to_markdown( $html, $post, $base_url );
+
+		return '' === $candidate_md ? $markdown : $this->merge_markdown_fragments( $markdown, $candidate_md );
 	}
 
 	/**

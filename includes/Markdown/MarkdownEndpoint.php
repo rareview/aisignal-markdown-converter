@@ -116,12 +116,7 @@ class MarkdownEndpoint {
 			return; // Let WordPress handle the request normally.
 		}
 
-		if ( ! $this->is_markdown_type_enabled( $post ) ) {
-			return;
-		}
-
-		$markdown = $this->get_converter()->convert_post_full( $post );
-		$this->send_markdown_response( $markdown );
+		$this->serve_post_markdown( $post, true );
 	}
 
 	/**
@@ -146,13 +141,8 @@ class MarkdownEndpoint {
 		$post = get_queried_object();
 
 		if ( $post instanceof \WP_Post ) {
-			if ( ! $this->is_markdown_type_enabled( $post ) ) {
-				status_header( 403 );
-				echo "# Not Available\n\nMarkdown is not enabled for this content type.\n";
-				exit;
-			}
-
-			$this->send_markdown_response( $this->get_converter()->convert_post_full( $post ) );
+			$this->serve_post_markdown( $post, (bool) ( $is_md_endpoint || $is_format ) );
+			return;
 		}
 
 		if ( is_object( $post ) ) {
@@ -162,18 +152,10 @@ class MarkdownEndpoint {
 		$post = $this->resolve_post_from_request();
 
 		if ( ! $post ) {
-			status_header( 404 );
-			echo "# 404 Not Found\n\nThe requested content could not be found.\n";
-			exit;
+			$this->render_default_404_response();
 		}
 
-		if ( ! $this->is_markdown_type_enabled( $post ) ) {
-			status_header( 403 );
-			echo "# Not Available\n\nMarkdown is not enabled for this content type.\n";
-			exit;
-		}
-
-		$this->send_markdown_response( $this->get_converter()->convert_post_full( $post ) );
+		$this->serve_post_markdown( $post, (bool) ( $is_md_endpoint || $is_format ) );
 	}
 
 	/**
@@ -243,8 +225,9 @@ class MarkdownEndpoint {
 		$front_page_id = (int) get_option( 'page_on_front' );
 
 		if ( 'page' === get_option( 'show_on_front' ) && $front_page_id ) {
-			$post = get_post( $front_page_id );
-			if ( $post ) {
+			$post         = get_post( $front_page_id );
+			$availability = MarkdownAvailability::get_markdown_availability( $post instanceof \WP_Post ? $post : null );
+			if ( ! empty( $availability['markdown_available'] ) ) {
 				$markdown = $this->get_converter()->convert_post_full( $post );
 			}
 		}
@@ -280,18 +263,21 @@ class MarkdownEndpoint {
 	 * @return array<int, string>
 	 */
 	protected function build_markdown_response_headers() {
-		$headers = [
-			'Content-Type: ' . Helpers::markdown_content_type(),
-			'X-Content-Type-Options: nosniff',
-			'X-AISignal-Markdown: ' . AISIGNAL_MARKDOWN_VERSION,
-			'Cache-Control: public, max-age=3600',
-		];
+		$headers = $this->get_default_markdown_response_headers();
 
 		if ( $this->wants_markdown_response() ) {
 			$headers[] = 'Vary: Accept';
 		}
 
-		return $headers;
+		/**
+		 * Filter Markdown response headers before they are sent.
+		 *
+		 * @param array<int, string> $headers Header lines.
+		 * @param MarkdownEndpoint   $endpoint Endpoint instance.
+		 */
+		$headers = apply_filters( 'aisignal_markdown_response_headers', $headers, $this );
+
+		return is_array( $headers ) ? array_values( $headers ) : $this->get_default_markdown_response_headers();
 	}
 
 	/**
@@ -318,14 +304,19 @@ class MarkdownEndpoint {
 		$parts[] = '## Key Pages';
 		$parts[] = '';
 
-		$key_pages = get_pages(
+		$key_pages = $this->get_homepage_posts(
+			'page',
 			[
-				'sort_column' => 'menu_order',
-				'sort_order'  => 'ASC',
-				'parent'      => 0,
-				'post_status' => 'publish',
-				'number'      => 20,
-			]
+				'post_type'      => 'page',
+				'post_status'    => 'publish',
+				'posts_per_page' => 20,
+				'post_parent'    => 0,
+				'orderby'        => [
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+				],
+			],
+			'aisignal_markdown_homepage_key_pages_args'
 		);
 
 		if ( ! empty( $key_pages ) ) {
@@ -337,14 +328,16 @@ class MarkdownEndpoint {
 			$parts[] = '';
 		}
 
-		$recent = get_posts(
+		$recent = $this->get_homepage_posts(
+			'post',
 			[
 				'post_type'      => 'post',
 				'post_status'    => 'publish',
 				'posts_per_page' => 10,
 				'orderby'        => 'date',
 				'order'          => 'DESC',
-			]
+			],
+			'aisignal_markdown_homepage_recent_posts_args'
 		);
 
 		if ( ! empty( $recent ) ) {
@@ -366,7 +359,15 @@ class MarkdownEndpoint {
 			}
 		}
 
-		return implode( "\n", $parts );
+		$markdown = implode( "\n", $parts );
+
+		/**
+		 * Filter the generated homepage markdown overview.
+		 *
+		 * @param string           $markdown Homepage markdown.
+		 * @param MarkdownEndpoint $endpoint Endpoint instance.
+		 */
+		return (string) apply_filters( 'aisignal_markdown_homepage_output', $markdown, $this );
 	}
 
 	/**
@@ -420,12 +421,14 @@ class MarkdownEndpoint {
 		$last_slug = end( $parts );
 
 		$posts = get_posts(
-			[
-				'name'           => sanitize_title( $last_slug ),
-				'post_type'      => $post_types,
-				'post_status'    => 'publish',
-				'posts_per_page' => 10,
-			]
+			MarkdownAvailability::add_eligibility_query_args(
+				[
+					'name'           => sanitize_title( $last_slug ),
+					'post_type'      => $post_types,
+					'post_status'    => 'publish',
+					'posts_per_page' => 10,
+				]
+			)
 		);
 
 		if ( empty( $posts ) ) {
@@ -452,14 +455,81 @@ class MarkdownEndpoint {
 	}
 
 	/**
-	 * Check whether a post type is enabled for markdown output.
+	 * Handle unavailable markdown requests without exposing a custom markdown body.
+	 *
+	 * @param array<string, mixed> $availability Availability state.
+	 * @param \WP_Post|null        $post Post object when resolved.
+	 * @param bool                 $explicit_request Whether the request used `.md` or `?format=markdown`.
+	 *
+	 * @return void
+	 */
+	protected function handle_unavailable_markdown_request( array $availability, $post = null, bool $explicit_request = false ) {
+		$reason = isset( $availability['availability_reason'] ) ? (string) $availability['availability_reason'] : 'post_not_found';
+
+		if (
+			$explicit_request &&
+			$post instanceof \WP_Post &&
+			in_array( $reason, [ 'not_enabled_type', 'excluded_global', 'excluded_post' ], true )
+		) {
+			$this->redirect_to_canonical_post( $post );
+			return;
+		}
+
+		$this->render_default_404_response();
+	}
+
+	/**
+	 * Redirect an unavailable markdown request to the canonical HTML page.
 	 *
 	 * @param \WP_Post $post Post object.
 	 *
-	 * @return bool
+	 * @return void
 	 */
-	protected function is_markdown_type_enabled( $post ) {
-		return $post instanceof \WP_Post && in_array( $post->post_type, $this->get_enabled_markdown_types(), true );
+	protected function redirect_to_canonical_post( \WP_Post $post ) {
+		$url = get_permalink( $post );
+
+		if ( function_exists( 'wp_safe_redirect' ) ) {
+			wp_safe_redirect( $url, 302, 'AI Signal Markdown' );
+			exit;
+		}
+
+		header( 'Location: ' . $url, true, 302 );
+		exit;
+	}
+
+	/**
+	 * Render the normal WordPress 404 response for unavailable markdown requests.
+	 *
+	 * @return void
+	 */
+	protected function render_default_404_response() {
+		global $wp_query;
+
+		if ( isset( $wp_query ) && is_object( $wp_query ) && method_exists( $wp_query, 'set_404' ) ) {
+			$wp_query->set_404();
+		}
+
+		if ( function_exists( 'status_header' ) ) {
+			status_header( 404 );
+		}
+
+		if ( function_exists( 'nocache_headers' ) ) {
+			nocache_headers();
+		}
+
+		if ( function_exists( 'get_query_template' ) ) {
+			$template = get_query_template( '404' );
+			if ( is_string( $template ) && '' !== $template && file_exists( $template ) ) {
+				include $template;
+				exit;
+			}
+		}
+
+		if ( function_exists( 'wp_die' ) ) {
+			wp_die( esc_html__( 'Not Found', 'aisignal-markdown' ), '', [ 'response' => 404 ] );
+		}
+
+		exit;
 	}
 
 	/**
@@ -528,28 +598,7 @@ class MarkdownEndpoint {
 	 */
 	public function rest_get_markdown( $request ) {
 		$post = get_post( $request['id'] );
-
-		if ( ! $post || 'publish' !== $post->post_status ) {
-			return new \WP_REST_Response( [ 'error' => 'Post not found' ], 404 );
-		}
-
-		if ( ! $this->is_markdown_type_enabled( $post ) ) {
-			return new \WP_REST_Response( [ 'error' => 'Markdown is not enabled for this post type.' ], 403 );
-		}
-
-		$markdown = $this->get_converter()->convert_post_full( $post );
-
-		$response = [
-			'id'       => $post->ID,
-			'title'    => get_the_title( $post ),
-			'markdown' => $markdown,
-			'url'      => get_permalink( $post ),
-			'md_url'   => get_permalink( $post ) . '?format=markdown',
-		];
-
-		return new \WP_REST_Response(
-			$response
-		);
+		return $this->build_rest_markdown_response( $post instanceof \WP_Post ? $post : null, $request );
 	}
 
 	/**
@@ -569,23 +618,123 @@ class MarkdownEndpoint {
 		}
 
 		$post = $this->resolve_post_from_path( $slug, $post_types );
-		if ( ! $post || ! $this->is_markdown_type_enabled( $post ) || 'publish' !== $post->post_status ) {
+		return $this->build_rest_markdown_response( $post instanceof \WP_Post ? $post : null, $request );
+	}
+
+	/**
+	 * Filter the REST markdown payload before it is wrapped in a response object.
+	 *
+	 * @param array<string, mixed> $response Response payload.
+	 * @param \WP_Post             $post Post object.
+	 * @param mixed                $request REST request.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function filter_rest_markdown_response( array $response, \WP_Post $post, $request ): array {
+		/**
+		 * Filter the REST markdown payload before it is returned.
+		 *
+		 * @param array<string, mixed> $response Response payload.
+		 * @param \WP_Post             $post Post object.
+		 * @param mixed                $request REST request object.
+		 */
+		$filtered = apply_filters( 'aisignal_markdown_rest_response', $response, $post, $request );
+
+		return is_array( $filtered ) ? $filtered : $response;
+	}
+
+	/**
+	 * Serve markdown for a resolved post or handle unavailability.
+	 *
+	 * @param \WP_Post $post Resolved post object.
+	 * @param bool     $explicit_request Whether the request used `.md` or `?format=markdown`.
+	 *
+	 * @return void
+	 */
+	protected function serve_post_markdown( \WP_Post $post, bool $explicit_request = false ): void {
+		$availability = MarkdownAvailability::get_markdown_availability( $post );
+		if ( empty( $availability['markdown_available'] ) ) {
+			$this->handle_unavailable_markdown_request( $availability, $post, $explicit_request );
+			return;
+		}
+
+		$this->send_markdown_response( $this->get_converter()->convert_post_full( $post ) );
+	}
+
+	/**
+	 * Get the default markdown response headers.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_default_markdown_response_headers(): array {
+		return [
+			'Content-Type: ' . Helpers::markdown_content_type(),
+			'X-Content-Type-Options: nosniff',
+			'X-AISignal-Markdown: ' . AISIGNAL_MARKDOWN_VERSION,
+			'Cache-Control: public, max-age=3600',
+		];
+	}
+
+	/**
+	 * Get homepage posts for a specific section.
+	 *
+	 * @param string               $required_type Post type required to enable the section.
+	 * @param array<string, mixed> $query_args Query args.
+	 * @param string               $filter_name Filter name for query args.
+	 *
+	 * @return array<int, \WP_Post>
+	 */
+	protected function get_homepage_posts( string $required_type, array $query_args, string $filter_name ): array {
+		if ( ! in_array( $required_type, $this->get_enabled_markdown_types(), true ) ) {
+			return [];
+		}
+
+		/**
+		 * Filter homepage section query args.
+		 *
+		 * @param array<string, mixed> $query_args Query args.
+		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
+		 */
+		$query_args = apply_filters( $filter_name, $query_args, $this );
+
+		return get_posts(
+			MarkdownAvailability::add_eligibility_query_args(
+				is_array( $query_args ) ? $query_args : []
+			)
+		);
+	}
+
+	/**
+	 * Build a REST markdown response for a resolved post.
+	 *
+	 * @param \WP_Post|null $post Resolved post object.
+	 * @param mixed         $request REST request.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	protected function build_rest_markdown_response( ?\WP_Post $post, $request ): \WP_REST_Response {
+		if ( ! $post instanceof \WP_Post ) {
 			return new \WP_REST_Response( [ 'error' => 'Post not found' ], 404 );
 		}
 
-		$markdown = $this->get_converter()->convert_post_full( $post );
+		$availability = MarkdownAvailability::get_markdown_availability( $post );
+		if ( 'not_enabled_type' === $availability['availability_reason'] ) {
+			return new \WP_REST_Response( [ 'error' => 'Markdown is not enabled for this post type.' ], 403 );
+		}
+
+		if ( empty( $availability['markdown_available'] ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Post not found' ], 404 );
+		}
 
 		$response = [
 			'id'       => $post->ID,
 			'title'    => get_the_title( $post ),
-			'markdown' => $markdown,
+			'markdown' => $this->get_converter()->convert_post_full( $post ),
 			'url'      => get_permalink( $post ),
 			'md_url'   => get_permalink( $post ) . '?format=markdown',
 		];
 
-		return new \WP_REST_Response(
-			$response
-		);
+		return new \WP_REST_Response( $this->filter_rest_markdown_response( $response, $post, $request ) );
 	}
 
 	/**

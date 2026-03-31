@@ -17,15 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Helpers {
 
 	/**
-	 * Plugin version.
-	 *
-	 * @return string
-	 */
-	public static function version(): string {
-		return AISIGNAL_MARKDOWN_VERSION;
-	}
-
-	/**
 	 * Get enabled post types for Markdown output.
 	 *
 	 * @param string $feature Feature key.

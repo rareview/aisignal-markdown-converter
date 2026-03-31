@@ -23,6 +23,7 @@ class AiSignalMarkdownServiceProvider {
 	 */
 	public static array $services = [
 		Register::class,
+		Markdown\MarkdownAvailability::class,
 		Markdown\MarkdownEndpoint::class,
 		Admin\AdminPage::class,
 	];
@@ -33,11 +34,46 @@ class AiSignalMarkdownServiceProvider {
 	 * @return void
 	 */
 	public function __construct() {
-		foreach ( self::$services as $service ) {
-			new $service();
+		foreach ( $this->get_services() as $service ) {
+			if ( class_exists( $service ) ) {
+				new $service();
+			}
 		}
 
 		add_action( 'after_plugin_row_' . plugin_basename( AISIGNAL_MARKDOWN_PLUGIN_FILE ), [ $this, 'render_plugin_row_notice' ], 10, 3 );
+	}
+
+	/**
+	 * Get the service list after filtering and normalization.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_services(): array {
+		$services = self::$services;
+
+		/**
+		 * Filter the list of AI Signal Markdown services that should be bootstrapped.
+		 *
+		 * @param array<int, string> $services Service class names.
+		 */
+		$services = apply_filters( 'aisignal_markdown_services', $services );
+		if ( ! is_array( $services ) ) {
+			return self::$services;
+		}
+
+		$normalized = [];
+
+		foreach ( $services as $service ) {
+			if ( ! is_string( $service ) || '' === trim( $service ) ) {
+				continue;
+			}
+
+			$normalized[] = trim( $service );
+		}
+
+		$normalized = array_values( array_unique( $normalized ) );
+
+		return empty( $normalized ) ? self::$services : $normalized;
 	}
 
 	/**
@@ -46,12 +82,16 @@ class AiSignalMarkdownServiceProvider {
 	 * @return void
 	 */
 	public static function activate(): void {
-		if ( false === get_option( 'aisignal_markdown_post_types' ) ) {
-			update_option( 'aisignal_markdown_post_types', [ 'post', 'page' ] );
-		}
+		$defaults = [
+			'aisignal_markdown_post_types'         => [ 'post', 'page' ],
+			'aisignal_markdown_enable_frontmatter' => false,
+			Markdown\MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => [],
+		];
 
-		if ( false === get_option( 'aisignal_markdown_enable_frontmatter' ) ) {
-			update_option( 'aisignal_markdown_enable_frontmatter', false );
+		foreach ( $defaults as $option => $value ) {
+			if ( false === get_option( $option ) ) {
+				update_option( $option, $value );
+			}
 		}
 
 		$endpoint = new Markdown\MarkdownEndpoint();
