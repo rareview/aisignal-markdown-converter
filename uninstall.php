@@ -9,8 +9,6 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-require_once __DIR__ . '/includes/Legacy.php';
-
 /**
  * Delete plugin options for the current site.
  *
@@ -24,12 +22,6 @@ function wpmdc_uninstall_delete_options(): void {
 		'wp_markdown_converter_crawler_retention_days',
 		'wp_markdown_converter_crawler_log_schema_version',
 		'wp_markdown_converter_excluded_post_ids',
-		\WpMarkdownConverter\Inc\Legacy::OPTION_POST_TYPES,
-		\WpMarkdownConverter\Inc\Legacy::OPTION_ENABLE_FRONTMATTER,
-		\WpMarkdownConverter\Inc\Legacy::OPTION_ENABLE_CRAWLER_INSIGHTS,
-		\WpMarkdownConverter\Inc\Legacy::OPTION_CRAWLER_RETENTION_DAYS,
-		\WpMarkdownConverter\Inc\Legacy::OPTION_CRAWLER_SCHEMA_VERSION,
-		\WpMarkdownConverter\Inc\Legacy::OPTION_EXCLUDED_POST_IDS,
 	];
 
 	foreach ( $options as $option ) {
@@ -49,7 +41,6 @@ function wpmdc_uninstall_delete_post_meta(): void {
 	}
 
 	delete_metadata( 'post', 0, '_wp_markdown_converter_excluded', '', true );
-	delete_metadata( 'post', 0, \WpMarkdownConverter\Inc\Legacy::META_KEY_EXCLUDED, '', true );
 }
 
 /**
@@ -73,21 +64,11 @@ function wpmdc_uninstall_drop_log_table(): void {
 	}
 
 	$wp_markdown_converter_table_name = (string) $wpdb->prefix . 'wp_markdown_converter_request_log';
-	$legacy_table_name                = \WpMarkdownConverter\Inc\Legacy::request_log_table_name( (string) $wpdb->prefix );
-
 	maybe_drop_table(
 		$wp_markdown_converter_table_name,
 		sprintf(
 			'DROP TABLE IF EXISTS %s',
 			$wp_markdown_converter_table_name
-		)
-	);
-
-	maybe_drop_table(
-		$legacy_table_name,
-		sprintf(
-			'DROP TABLE IF EXISTS %s',
-			$legacy_table_name
 		)
 	);
 }
@@ -100,7 +81,6 @@ function wpmdc_uninstall_drop_log_table(): void {
 function wpmdc_uninstall_clear_scheduled_hooks(): void {
 	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
 		wp_clear_scheduled_hook( 'wp_markdown_converter_prune_request_log' );
-		wp_clear_scheduled_hook( \WpMarkdownConverter\Inc\Legacy::CRON_HOOK_PRUNE_REQUEST_LOG );
 	}
 }
 

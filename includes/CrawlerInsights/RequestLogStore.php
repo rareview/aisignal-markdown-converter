@@ -7,8 +7,6 @@
 
 namespace WpMarkdownConverter\Inc\CrawlerInsights;
 
-use WpMarkdownConverter\Inc\Legacy;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -311,14 +309,7 @@ class RequestLogStore {
 	 */
 	protected function resolve_table_name(): string {
 		if ( is_object( $this->wpdb ) && isset( $this->wpdb->prefix ) ) {
-			$new_table = (string) $this->wpdb->prefix . 'wp_markdown_converter_request_log';
-			$old_table = Legacy::request_log_table_name( (string) $this->wpdb->prefix );
-
-			if ( $this->table_exists( $new_table ) || ! $this->table_exists( $old_table ) ) {
-				return $new_table;
-			}
-
-			return $old_table;
+			return (string) $this->wpdb->prefix . 'wp_markdown_converter_request_log';
 		}
 
 		return 'wp_wp_markdown_converter_request_log';

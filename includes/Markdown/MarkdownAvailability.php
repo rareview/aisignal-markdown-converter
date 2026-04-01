@@ -8,7 +8,6 @@
 namespace WpMarkdownConverter\Inc\Markdown;
 
 use WpMarkdownConverter\Inc\Helpers;
-use WpMarkdownConverter\Inc\Legacy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,19 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Shared markdown availability service.
  */
 class MarkdownAvailability {
-
-	/**
-	 * Global option key for excluded post IDs.
-	 */
 	public const OPTION_EXCLUDED_POST_IDS = 'wp_markdown_converter_excluded_post_ids';
+	public const META_KEY_EXCLUDED        = '_wp_markdown_converter_excluded';
 
 	/**
-	 * Per-post exclusion meta key.
-	 */
-	public const META_KEY_EXCLUDED = '_wp_markdown_converter_excluded';
-
-	/**
-	 * Guard duplicate hook registration.
+	 * Prevent duplicate hook registration.
 	 *
 	 * @var bool
 	 */
@@ -121,10 +112,6 @@ class MarkdownAvailability {
 	public static function get_excluded_post_ids(): array {
 		$value = get_option( self::OPTION_EXCLUDED_POST_IDS, null );
 
-		if ( null === $value ) {
-			$value = get_option( Legacy::OPTION_EXCLUDED_POST_IDS, [] );
-		}
-
 		return self::normalize_excluded_post_ids( $value );
 	}
 
@@ -173,7 +160,7 @@ class MarkdownAvailability {
 			return rest_sanitize_boolean( get_post_meta( $post_id, self::META_KEY_EXCLUDED, true ) );
 		}
 
-		return rest_sanitize_boolean( get_post_meta( $post_id, Legacy::META_KEY_EXCLUDED, true ) );
+		return false;
 	}
 
 	/**
@@ -330,7 +317,5 @@ class MarkdownAvailability {
 		} else {
 			delete_post_meta( $post_id, self::META_KEY_EXCLUDED );
 		}
-
-		delete_post_meta( $post_id, Legacy::META_KEY_EXCLUDED );
 	}
 }

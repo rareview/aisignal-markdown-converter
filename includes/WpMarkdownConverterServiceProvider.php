@@ -15,21 +15,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Plugin service provider.
  */
 class WpMarkdownConverterServiceProvider {
-
-	/**
-	 * Legacy option name map.
-	 *
-	 * @var array<string, string>
-	 */
-	private const LEGACY_OPTION_MAP = [
-		'wp_markdown_converter_post_types'              => Legacy::OPTION_POST_TYPES,
-		'wp_markdown_converter_enable_frontmatter'      => Legacy::OPTION_ENABLE_FRONTMATTER,
-		CrawlerInsights\CrawlerInsights::OPTION_ENABLED => Legacy::OPTION_ENABLE_CRAWLER_INSIGHTS,
-		CrawlerInsights\CrawlerInsights::OPTION_RETENTION_DAYS => Legacy::OPTION_CRAWLER_RETENTION_DAYS,
-		CrawlerInsights\CrawlerInsights::OPTION_SCHEMA_VERSION => Legacy::OPTION_CRAWLER_SCHEMA_VERSION,
-		Markdown\MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => Legacy::OPTION_EXCLUDED_POST_IDS,
-	];
-
 	/**
 	 * The plugin services that should be bootstrapped.
 	 *
@@ -49,8 +34,6 @@ class WpMarkdownConverterServiceProvider {
 	 * @return void
 	 */
 	public function __construct() {
-		self::maybe_migrate_legacy_options();
-
 		foreach ( $this->get_services() as $service ) {
 			if ( class_exists( $service ) ) {
 				new $service();
@@ -111,35 +94,12 @@ class WpMarkdownConverterServiceProvider {
 			}
 		}
 
-		self::maybe_migrate_legacy_options();
-
 		$endpoint = new Markdown\MarkdownEndpoint();
 		$endpoint->add_rewrite_rules();
 		$crawler_insights = new CrawlerInsights\CrawlerInsights();
 		$crawler_insights->maybe_install_table();
 		$crawler_insights->ensure_prune_schedule();
 		flush_rewrite_rules();
-	}
-
-	/**
-	 * Copy legacy option values to the new prefix when needed.
-	 *
-	 * @return void
-	 */
-	private static function maybe_migrate_legacy_options(): void {
-		foreach ( self::LEGACY_OPTION_MAP as $new_option => $legacy_option ) {
-			if ( null !== get_option( $new_option, null ) ) {
-				continue;
-			}
-
-			$legacy_value = get_option( $legacy_option, null );
-
-			if ( null === $legacy_value ) {
-				continue;
-			}
-
-			update_option( $new_option, $legacy_value );
-		}
 	}
 
 	/**

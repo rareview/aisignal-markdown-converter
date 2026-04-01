@@ -26,10 +26,6 @@ class Helpers {
 		$option  = get_option( 'wp_markdown_converter_post_types', null );
 
 		if ( ! is_array( $option ) ) {
-			$option = get_option( Legacy::OPTION_POST_TYPES, null );
-		}
-
-		if ( ! is_array( $option ) ) {
 			$option = [ 'post', 'page' ];
 		}
 
@@ -45,10 +41,6 @@ class Helpers {
 	 */
 	public static function is_frontmatter_enabled(): bool {
 		$enabled = get_option( 'wp_markdown_converter_enable_frontmatter', null );
-
-		if ( null === $enabled ) {
-			$enabled = get_option( Legacy::OPTION_ENABLE_FRONTMATTER, false );
-		}
 
 		return (bool) $enabled;
 	}

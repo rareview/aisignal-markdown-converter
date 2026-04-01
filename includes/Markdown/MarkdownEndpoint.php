@@ -16,16 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use WpMarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
 use WpMarkdownConverter\Inc\Helpers;
-use WpMarkdownConverter\Inc\Legacy;
 
 /**
  * Handle Markdown routes and responses.
  */
 class MarkdownEndpoint {
-
-	/**
-	 * Internal query var for rewritten .md requests.
-	 */
 	private const QUERY_VAR_MD = 'wp_markdown_converter_md';
 
 	/**
@@ -36,7 +31,7 @@ class MarkdownEndpoint {
 	protected $converter;
 
 	/**
-	 * The crawler insights service instance.
+	 * Crawler insights service instance.
 	 *
 	 * @var CrawlerInsights|null
 	 */
@@ -83,7 +78,6 @@ class MarkdownEndpoint {
 	 */
 	public function add_query_vars( $vars ) {
 		$vars[] = self::QUERY_VAR_MD;
-		$vars[] = Legacy::QUERY_VAR_MD;
 		$vars[] = 'format';
 		return $vars;
 	}
@@ -122,7 +116,7 @@ class MarkdownEndpoint {
 		}
 
 		if ( ! $post ) {
-			return; // Let WordPress handle the request normally.
+			return;
 		}
 
 		$this->serve_post_markdown( $post, true );
@@ -189,20 +183,7 @@ class MarkdownEndpoint {
 			}
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only response negotiation.
-		$query_string = isset( $_SERVER['QUERY_STRING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['QUERY_STRING'] ) ) : '';
-
-		if ( '' === $query_string ) {
-			return false;
-		}
-
-		parse_str( $query_string, $query_args );
-
-		if ( ! isset( $query_args['format'] ) ) {
-			return false;
-		}
-
-		return 'markdown' === strtolower( sanitize_text_field( wp_unslash( (string) $query_args['format'] ) ) );
+		return false;
 	}
 
 	/**
@@ -860,6 +841,6 @@ class MarkdownEndpoint {
 	 * @return bool
 	 */
 	protected function is_md_query_var_set(): bool {
-		return (bool) ( get_query_var( self::QUERY_VAR_MD ) || get_query_var( Legacy::QUERY_VAR_MD ) );
+		return (bool) get_query_var( self::QUERY_VAR_MD );
 	}
 }

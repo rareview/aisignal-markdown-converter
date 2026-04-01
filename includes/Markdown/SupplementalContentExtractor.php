@@ -40,11 +40,6 @@ class SupplementalContentExtractor {
 	public function extract( \WP_Post $post ) {
 		$parts = [];
 
-		$filtered = $this->capture->capture_filtered_content_fragment( $post );
-		if ( ! empty( trim( wp_strip_all_tags( $filtered ) ) ) ) {
-			$parts[] = $filtered;
-		}
-
 		$acf = $this->extract_acf_html( $post );
 		if ( ! empty( trim( wp_strip_all_tags( $acf ) ) ) ) {
 			$parts[] = $acf;

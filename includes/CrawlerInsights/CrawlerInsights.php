@@ -11,7 +11,6 @@ use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
 use WP_Post;
-use WpMarkdownConverter\Inc\Legacy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,48 +20,28 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manage crawler insights lifecycle, logging, and reporting.
  */
 class CrawlerInsights {
-
-	/**
-	 * Toggle option.
-	 */
-	public const OPTION_ENABLED = 'wp_markdown_converter_enable_crawler_insights';
-
-	/**
-	 * Retention option.
-	 */
+	public const OPTION_ENABLED        = 'wp_markdown_converter_enable_crawler_insights';
 	public const OPTION_RETENTION_DAYS = 'wp_markdown_converter_crawler_retention_days';
-
-	/**
-	 * Schema version option.
-	 */
 	public const OPTION_SCHEMA_VERSION = 'wp_markdown_converter_crawler_log_schema_version';
+	public const SCHEMA_VERSION        = '1';
+	public const CRON_HOOK             = 'wp_markdown_converter_prune_request_log';
 
 	/**
-	 * Current schema version.
-	 */
-	public const SCHEMA_VERSION = '1';
-
-	/**
-	 * Daily prune cron hook.
-	 */
-	public const CRON_HOOK = 'wp_markdown_converter_prune_request_log';
-
-	/**
-	 * Guard duplicate hook registration.
+	 * Prevent duplicate hook registration.
 	 *
 	 * @var bool
 	 */
 	protected static bool $hooks_registered = false;
 
 	/**
-	 * Store dependency.
+	 * Request-log store dependency.
 	 *
 	 * @var RequestLogStore
 	 */
 	protected RequestLogStore $store;
 
 	/**
-	 * Detector dependency.
+	 * Bot detector dependency.
 	 *
 	 * @var BotDetector
 	 */
@@ -106,10 +85,6 @@ class CrawlerInsights {
 	public function is_enabled(): bool {
 		$enabled = get_option( self::OPTION_ENABLED, null );
 
-		if ( null === $enabled ) {
-			$enabled = get_option( Legacy::OPTION_ENABLE_CRAWLER_INSIGHTS, false );
-		}
-
 		return (bool) rest_sanitize_boolean( $enabled );
 	}
 
@@ -132,10 +107,6 @@ class CrawlerInsights {
 	 */
 	public function get_retention_days(): int {
 		$retention = get_option( self::OPTION_RETENTION_DAYS, null );
-
-		if ( null === $retention ) {
-			$retention = get_option( Legacy::OPTION_CRAWLER_RETENTION_DAYS, 30 );
-		}
 
 		return $this->sanitize_retention_days( $retention );
 	}
@@ -279,10 +250,6 @@ class CrawlerInsights {
 	public function maybe_install_table(): void {
 		$schema_version = get_option( self::OPTION_SCHEMA_VERSION, null );
 
-		if ( null === $schema_version ) {
-			$schema_version = get_option( Legacy::OPTION_CRAWLER_SCHEMA_VERSION, '' );
-		}
-
 		if ( self::SCHEMA_VERSION === (string) $schema_version ) {
 			return;
 		}
@@ -381,7 +348,6 @@ class CrawlerInsights {
 	public static function unschedule_prune_event(): void {
 		if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
 			wp_clear_scheduled_hook( self::CRON_HOOK );
-			wp_clear_scheduled_hook( Legacy::CRON_HOOK_PRUNE_REQUEST_LOG );
 		}
 	}
 

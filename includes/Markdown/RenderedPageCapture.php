@@ -98,12 +98,12 @@ class RenderedPageCapture {
 	protected function capture_via_template( \WP_Post $post ) {
 		return $this->capture_with_template_context(
 			$post,
-			function ( string $template ) use ( $post ) {
+			function ( string $template ) {
 				if ( ! empty( $template ) && file_exists( $template ) ) {
 					return $this->capture_template_output( $template );
 				}
 
-				return $this->capture_filtered_content_html( $post );
+				return '';
 			}
 		);
 	}
