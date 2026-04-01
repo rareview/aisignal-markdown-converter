@@ -5,7 +5,7 @@
  * Handles .md URL endpoints and ?format=markdown query parameter.
  * Provides clean Markdown versions of any post/page via URL rewriting.
  *
- * @author Rareview <hello@rareview.com>
+ * @author Rareview® <hello@rareview.com>
  *
  * @package AI Signal
  */
