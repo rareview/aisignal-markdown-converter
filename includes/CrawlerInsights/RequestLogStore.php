@@ -2,10 +2,12 @@
 /**
  * Request log persistence for crawler insights.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\CrawlerInsights;
+namespace WpMarkdownConverter\Inc\CrawlerInsights;
+
+use WpMarkdownConverter\Inc\Legacy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -309,9 +311,40 @@ class RequestLogStore {
 	 */
 	protected function resolve_table_name(): string {
 		if ( is_object( $this->wpdb ) && isset( $this->wpdb->prefix ) ) {
-			return (string) $this->wpdb->prefix . 'aisignal_markdown_request_log';
+			$new_table = (string) $this->wpdb->prefix . 'wp_markdown_converter_request_log';
+			$old_table = Legacy::request_log_table_name( (string) $this->wpdb->prefix );
+
+			if ( $this->table_exists( $new_table ) || ! $this->table_exists( $old_table ) ) {
+				return $new_table;
+			}
+
+			return $old_table;
 		}
 
-		return 'wp_aisignal_markdown_request_log';
+		return 'wp_wp_markdown_converter_request_log';
+	}
+
+	/**
+	 * Check whether a table exists.
+	 *
+	 * @param string $table_name Table name.
+	 *
+	 * @return bool
+	 */
+	protected function table_exists( string $table_name ): bool {
+		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_var' ) ) {
+			return false;
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The query is prepared immediately below.
+		$result = $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SHOW TABLES LIKE %s',
+				$table_name
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
+
+		return is_string( $result ) && $table_name === $result;
 	}
 }

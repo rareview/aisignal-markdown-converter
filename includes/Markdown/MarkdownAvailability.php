@@ -2,12 +2,13 @@
 /**
  * Central markdown availability and exclusion checks.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\Markdown;
+namespace WpMarkdownConverter\Inc\Markdown;
 
-use AiSignalMarkdown\Inc\Helpers;
+use WpMarkdownConverter\Inc\Helpers;
+use WpMarkdownConverter\Inc\Legacy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,12 +22,12 @@ class MarkdownAvailability {
 	/**
 	 * Global option key for excluded post IDs.
 	 */
-	public const OPTION_EXCLUDED_POST_IDS = 'aisignal_markdown_excluded_post_ids';
+	public const OPTION_EXCLUDED_POST_IDS = 'wp_markdown_converter_excluded_post_ids';
 
 	/**
 	 * Per-post exclusion meta key.
 	 */
-	public const META_KEY_EXCLUDED = '_aisignal_markdown_excluded';
+	public const META_KEY_EXCLUDED = '_wp_markdown_converter_excluded';
 
 	/**
 	 * Guard duplicate hook registration.
@@ -118,7 +119,13 @@ class MarkdownAvailability {
 	 * @return array<int, int>
 	 */
 	public static function get_excluded_post_ids(): array {
-		return self::normalize_excluded_post_ids( get_option( self::OPTION_EXCLUDED_POST_IDS, [] ) );
+		$value = get_option( self::OPTION_EXCLUDED_POST_IDS, null );
+
+		if ( null === $value ) {
+			$value = get_option( Legacy::OPTION_EXCLUDED_POST_IDS, [] );
+		}
+
+		return self::normalize_excluded_post_ids( $value );
 	}
 
 	/**
@@ -162,7 +169,11 @@ class MarkdownAvailability {
 	 * @return bool
 	 */
 	public static function is_post_excluded_per_post( int $post_id ): bool {
-		return rest_sanitize_boolean( get_post_meta( $post_id, self::META_KEY_EXCLUDED, true ) );
+		if ( function_exists( 'metadata_exists' ) && metadata_exists( 'post', $post_id, self::META_KEY_EXCLUDED ) ) {
+			return rest_sanitize_boolean( get_post_meta( $post_id, self::META_KEY_EXCLUDED, true ) );
+		}
+
+		return rest_sanitize_boolean( get_post_meta( $post_id, Legacy::META_KEY_EXCLUDED, true ) );
 	}
 
 	/**
@@ -217,7 +228,7 @@ class MarkdownAvailability {
 		 * @param array<string, mixed> $state Availability state.
 		 * @param \WP_Post             $post  Post object.
 		 */
-		$state = apply_filters( 'aisignal_markdown_availability', $state, $post );
+		$state = apply_filters( 'wp_markdown_converter_availability', $state, $post );
 
 		if ( empty( $state['availability_message'] ) ) {
 			$state['availability_message'] = self::get_availability_message( (string) ( $state['availability_reason'] ?? '' ) );
@@ -320,5 +331,7 @@ class MarkdownAvailability {
 		} else {
 			delete_post_meta( $post_id, self::META_KEY_EXCLUDED );
 		}
+
+		delete_post_meta( $post_id, Legacy::META_KEY_EXCLUDED );
 	}
 }

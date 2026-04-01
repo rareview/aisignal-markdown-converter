@@ -1,13 +1,13 @@
 {
-    "name": "rareview/aisignal-markdown",
-    "description": "AI Signal Markdown WordPress plugin.",
+    "name": "rareview/wp-markdown-converter",
+    "description": "WP Markdown Converter WordPress plugin.",
     "version": "1.0.0",
     "require": {
         "php": ">=8.0"
     },
     "authors": [
         {
-            "name": "Rareview",
+            "name": "Rareview®",
             "email": "hello@rareview.com"
         }
     ],
@@ -18,11 +18,11 @@
     },
     "scripts": {
         "lint": "vendor/bin/phpcs --standard=.phpcs.xml; exit",
-        "format": "sh -c 'vendor/bin/phpcbf --standard=.phpcs.xml; code=$?; if [ \"$code\" -gt 1 ]; then exit \"$code\"; fi'"
+        "format": "sh -c 'vendor/bin/phpcbf --standard=.phpcs.xml; code=$?; if [ \"$code\" -gt 1 ]; then exit \"$code\"; fi'",
     },
     "autoload": {
         "psr-4": {
-            "AiSignalMarkdown\\Inc\\": "includes/"
+            "WpMarkdownConverter\\Inc\\": "includes/"
         }
     },
     "config": {

@@ -1,27 +1,35 @@
 <?php
 /**
- * Uninstall cleanup for AI Signal Markdown.
+ * Uninstall cleanup for WP Markdown Converter.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/includes/Legacy.php';
+
 /**
  * Delete plugin options for the current site.
  *
  * @return void
  */
-function aisignal_markdown_uninstall_delete_options(): void {
+function wp_markdown_converter_uninstall_delete_options(): void {
 	$options = [
-		'aisignal_markdown_post_types',
-		'aisignal_markdown_enable_frontmatter',
-		'aisignal_markdown_enable_crawler_insights',
-		'aisignal_markdown_crawler_retention_days',
-		'aisignal_markdown_crawler_log_schema_version',
-		'aisignal_markdown_excluded_post_ids',
+		'wp_markdown_converter_post_types',
+		'wp_markdown_converter_enable_frontmatter',
+		'wp_markdown_converter_enable_crawler_insights',
+		'wp_markdown_converter_crawler_retention_days',
+		'wp_markdown_converter_crawler_log_schema_version',
+		'wp_markdown_converter_excluded_post_ids',
+		\WpMarkdownConverter\Inc\Legacy::OPTION_POST_TYPES,
+		\WpMarkdownConverter\Inc\Legacy::OPTION_ENABLE_FRONTMATTER,
+		\WpMarkdownConverter\Inc\Legacy::OPTION_ENABLE_CRAWLER_INSIGHTS,
+		\WpMarkdownConverter\Inc\Legacy::OPTION_CRAWLER_RETENTION_DAYS,
+		\WpMarkdownConverter\Inc\Legacy::OPTION_CRAWLER_SCHEMA_VERSION,
+		\WpMarkdownConverter\Inc\Legacy::OPTION_EXCLUDED_POST_IDS,
 	];
 
 	foreach ( $options as $option ) {
@@ -35,12 +43,13 @@ function aisignal_markdown_uninstall_delete_options(): void {
  *
  * @return void
  */
-function aisignal_markdown_uninstall_delete_post_meta(): void {
+function wp_markdown_converter_uninstall_delete_post_meta(): void {
 	if ( ! function_exists( 'delete_metadata' ) ) {
 		return;
 	}
 
-	delete_metadata( 'post', 0, '_aisignal_markdown_excluded', '', true );
+	delete_metadata( 'post', 0, '_wp_markdown_converter_excluded', '', true );
+	delete_metadata( 'post', 0, \WpMarkdownConverter\Inc\Legacy::META_KEY_EXCLUDED, '', true );
 }
 
 /**
@@ -48,7 +57,7 @@ function aisignal_markdown_uninstall_delete_post_meta(): void {
  *
  * @return void
  */
-function aisignal_markdown_uninstall_drop_log_table(): void {
+function wp_markdown_converter_uninstall_drop_log_table(): void {
 	global $wpdb;
 
 	if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -63,13 +72,22 @@ function aisignal_markdown_uninstall_drop_log_table(): void {
 		return;
 	}
 
-	$aisignal_markdown_table_name = (string) $wpdb->prefix . 'aisignal_markdown_request_log';
+	$wp_markdown_converter_table_name = (string) $wpdb->prefix . 'wp_markdown_converter_request_log';
+	$legacy_table_name                = \WpMarkdownConverter\Inc\Legacy::request_log_table_name( (string) $wpdb->prefix );
 
 	maybe_drop_table(
-		$aisignal_markdown_table_name,
+		$wp_markdown_converter_table_name,
 		sprintf(
 			'DROP TABLE IF EXISTS %s',
-			$aisignal_markdown_table_name
+			$wp_markdown_converter_table_name
+		)
+	);
+
+	maybe_drop_table(
+		$legacy_table_name,
+		sprintf(
+			'DROP TABLE IF EXISTS %s',
+			$legacy_table_name
 		)
 	);
 }
@@ -79,9 +97,10 @@ function aisignal_markdown_uninstall_drop_log_table(): void {
  *
  * @return void
  */
-function aisignal_markdown_uninstall_clear_scheduled_hooks(): void {
+function wp_markdown_converter_uninstall_clear_scheduled_hooks(): void {
 	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
-		wp_clear_scheduled_hook( 'aisignal_markdown_prune_request_log' );
+		wp_clear_scheduled_hook( 'wp_markdown_converter_prune_request_log' );
+		wp_clear_scheduled_hook( \WpMarkdownConverter\Inc\Legacy::CRON_HOOK_PRUNE_REQUEST_LOG );
 	}
 }
 
@@ -90,26 +109,26 @@ function aisignal_markdown_uninstall_clear_scheduled_hooks(): void {
  *
  * @return void
  */
-function aisignal_markdown_uninstall_cleanup_current_site(): void {
-	aisignal_markdown_uninstall_clear_scheduled_hooks();
-	aisignal_markdown_uninstall_delete_options();
-	aisignal_markdown_uninstall_delete_post_meta();
-	aisignal_markdown_uninstall_drop_log_table();
+function wp_markdown_converter_uninstall_cleanup_current_site(): void {
+	wp_markdown_converter_uninstall_clear_scheduled_hooks();
+	wp_markdown_converter_uninstall_delete_options();
+	wp_markdown_converter_uninstall_delete_post_meta();
+	wp_markdown_converter_uninstall_drop_log_table();
 }
 
 if ( is_multisite() && function_exists( 'get_sites' ) && function_exists( 'switch_to_blog' ) && function_exists( 'restore_current_blog' ) ) {
-	$aisignal_markdown_site_ids = get_sites(
+	$wp_markdown_converter_site_ids = get_sites(
 		[
 			'fields' => 'ids',
 			'number' => 0,
 		]
 	);
 
-	foreach ( $aisignal_markdown_site_ids as $aisignal_markdown_site_id ) {
-		switch_to_blog( (int) $aisignal_markdown_site_id );
-		aisignal_markdown_uninstall_cleanup_current_site();
+	foreach ( $wp_markdown_converter_site_ids as $wp_markdown_converter_site_id ) {
+		switch_to_blog( (int) $wp_markdown_converter_site_id );
+		wp_markdown_converter_uninstall_cleanup_current_site();
 		restore_current_blog();
 	}
 } else {
-	aisignal_markdown_uninstall_cleanup_current_site();
+	wp_markdown_converter_uninstall_cleanup_current_site();
 }

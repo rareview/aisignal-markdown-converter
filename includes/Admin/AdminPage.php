@@ -1,15 +1,15 @@
 <?php
 /**
- * Admin settings page for AI Signal Markdown.
+ * Admin settings page for WP Markdown Converter.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\Admin;
+namespace WpMarkdownConverter\Inc\Admin;
 
-use AiSignalMarkdown\Inc\CrawlerInsights\CrawlerInsights;
-use AiSignalMarkdown\Inc\Helpers;
-use AiSignalMarkdown\Inc\Markdown\MarkdownAvailability;
+use WpMarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
+use WpMarkdownConverter\Inc\Helpers;
+use WpMarkdownConverter\Inc\Markdown\MarkdownAvailability;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -32,14 +32,14 @@ class AdminPage {
 	 *
 	 * @var string
 	 */
-	private const OPTION_GROUP_GENERAL = 'aisignal_markdown_general_settings';
+	private const OPTION_GROUP_GENERAL = 'wp_markdown_converter_general_settings';
 
 	/**
 	 * Crawler insights settings group.
 	 *
 	 * @var string
 	 */
-	private const OPTION_GROUP_CRAWLER = 'aisignal_markdown_crawler_settings';
+	private const OPTION_GROUP_CRAWLER = 'wp_markdown_converter_crawler_settings';
 
 	/**
 	 * Constructor.
@@ -49,14 +49,14 @@ class AdminPage {
 			add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 			add_action( 'admin_init', [ $this, 'register_settings' ] );
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
-			add_action( 'admin_post_aisignal_markdown_clear_crawler_log', [ $this, 'clear_crawler_log' ] );
+			add_action( 'admin_post_wp_markdown_converter_clear_crawler_log', [ $this, 'clear_crawler_log' ] );
 			add_action( 'add_meta_boxes', [ $this, 'add_post_settings_meta_boxes' ] );
 			add_action( 'save_post', [ $this, 'save_post_settings' ], 10, 2 );
 		}
 
-		if ( function_exists( 'add_filter' ) && defined( 'AISIGNAL_MARKDOWN_PLUGIN_FILE' ) && function_exists( 'plugin_basename' ) ) {
+		if ( function_exists( 'add_filter' ) && defined( 'WP_MARKDOWN_CONVERTER_PLUGIN_FILE' ) && function_exists( 'plugin_basename' ) ) {
 			add_filter(
-				'plugin_action_links_' . plugin_basename( AISIGNAL_MARKDOWN_PLUGIN_FILE ),
+				'plugin_action_links_' . plugin_basename( WP_MARKDOWN_CONVERTER_PLUGIN_FILE ),
 				[ $this, 'add_settings_link' ]
 			);
 		}
@@ -69,10 +69,10 @@ class AdminPage {
 	 */
 	public function add_settings_page(): void {
 		add_options_page(
-			__( 'AI Signal Markdown', 'aisignal-markdown' ),
-			__( 'AI Signal Markdown', 'aisignal-markdown' ),
+			__( 'WP Markdown Converter', 'wp-markdown-converter' ),
+			__( 'WP Markdown Converter', 'wp-markdown-converter' ),
 			'manage_options',
-			'aisignal-markdown',
+			'wp-markdown-converter',
 			[ $this, 'render_page' ]
 		);
 	}
@@ -85,15 +85,15 @@ class AdminPage {
 	 * @return void
 	 */
 	public function enqueue_admin_assets( string $hook_suffix ): void {
-		if ( 'settings_page_aisignal-markdown' !== $hook_suffix ) {
+		if ( 'settings_page_wp-markdown-converter' !== $hook_suffix ) {
 			return;
 		}
 
 		wp_enqueue_style(
-			'aisignal-markdown-admin',
-			plugins_url( 'assets/css/admin.css', AISIGNAL_MARKDOWN_PLUGIN_FILE ),
+			'wp-markdown-converter-admin',
+			plugins_url( 'assets/css/admin.css', WP_MARKDOWN_CONVERTER_PLUGIN_FILE ),
 			[],
-			AISIGNAL_MARKDOWN_VERSION
+			WP_MARKDOWN_CONVERTER_VERSION
 		);
 	}
 
@@ -177,8 +177,8 @@ class AdminPage {
 	 * @return array<int, string>
 	 */
 	public function add_settings_link( array $links ): array {
-		$links[] = '<a href="' . esc_url( admin_url( 'options-general.php?page=aisignal-markdown' ) ) . '">'
-			. esc_html__( 'Settings', 'aisignal-markdown' ) . '</a>';
+		$links[] = '<a href="' . esc_url( admin_url( 'options-general.php?page=wp-markdown-converter' ) ) . '">'
+			. esc_html__( 'Settings', 'wp-markdown-converter' ) . '</a>';
 
 		return $links;
 	}
@@ -196,8 +196,8 @@ class AdminPage {
 		$active_tab = $this->get_active_tab();
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'AI Signal Markdown', 'aisignal-markdown' ); ?></h1>
-			<p><?php echo esc_html__( 'Control Markdown exposure, metadata, and crawler request insights from one place.', 'aisignal-markdown' ); ?></p>
+			<h1><?php echo esc_html__( 'WP Markdown Converter', 'wp-markdown-converter' ); ?></h1>
+			<p><?php echo esc_html__( 'Control Markdown exposure, metadata, and crawler request insights from one place.', 'wp-markdown-converter' ); ?></p>
 			<?php settings_errors(); ?>
 			<?php $this->render_tab_navigation( $active_tab ); ?>
 
@@ -231,16 +231,16 @@ class AdminPage {
 	 */
 	protected function render_tab_navigation( string $active_tab ): void {
 		$tabs = [
-			'general'          => __( 'General', 'aisignal-markdown' ),
-			'crawler-insights' => __( 'Crawler Insights', 'aisignal-markdown' ),
+			'general'          => __( 'General', 'wp-markdown-converter' ),
+			'crawler-insights' => __( 'Crawler Insights', 'wp-markdown-converter' ),
 		];
 		?>
-		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'AI Signal Markdown settings sections', 'aisignal-markdown' ); ?>">
+		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'WP Markdown Converter settings sections', 'wp-markdown-converter' ); ?>">
 			<?php foreach ( $tabs as $tab => $label ) : ?>
 				<?php
 				$tab_url = add_query_arg(
 					[
-						'page' => 'aisignal-markdown',
+						'page' => 'wp-markdown-converter',
 						'tab'  => $tab,
 					],
 					admin_url( 'options-general.php' )
@@ -273,31 +273,31 @@ class AdminPage {
 			<table class="form-table" role="presentation">
 				<tbody>
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'YAML frontmatter', 'aisignal-markdown' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'YAML frontmatter', 'wp-markdown-converter' ); ?></th>
 						<td>
-							<label for="aisignal_markdown_enable_frontmatter">
-								<input type="hidden" name="aisignal_markdown_enable_frontmatter" value="0" />
+							<label for="wp_markdown_converter_enable_frontmatter">
+								<input type="hidden" name="wp_markdown_converter_enable_frontmatter" value="0" />
 								<input
 									type="checkbox"
-									id="aisignal_markdown_enable_frontmatter"
-									name="aisignal_markdown_enable_frontmatter"
+									id="wp_markdown_converter_enable_frontmatter"
+									name="wp_markdown_converter_enable_frontmatter"
 									value="1"
 									<?php checked( $frontmatter_enabled ); ?>
 								/>
-								<?php echo esc_html__( 'Prepend YAML frontmatter to Markdown documents.', 'aisignal-markdown' ); ?>
+								<?php echo esc_html__( 'Prepend YAML frontmatter to Markdown documents.', 'wp-markdown-converter' ); ?>
 							</label>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'Markdown-enabled post types', 'aisignal-markdown' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'Markdown-enabled post types', 'wp-markdown-converter' ); ?></th>
 						<td>
 							<fieldset>
 								<?php foreach ( $public_post_types as $post_type ) : ?>
-									<label for="<?php echo esc_attr( 'aisignal_markdown_post_types_' . $post_type->name ); ?>">
+									<label for="<?php echo esc_attr( 'wp_markdown_converter_post_types_' . $post_type->name ); ?>">
 										<input
 											type="checkbox"
-											id="<?php echo esc_attr( 'aisignal_markdown_post_types_' . $post_type->name ); ?>"
-											name="aisignal_markdown_post_types[]"
+											id="<?php echo esc_attr( 'wp_markdown_converter_post_types_' . $post_type->name ); ?>"
+											name="wp_markdown_converter_post_types[]"
 											value="<?php echo esc_attr( $post_type->name ); ?>"
 											<?php checked( in_array( $post_type->name, $enabled_types, true ) ); ?>
 										/>
@@ -308,20 +308,20 @@ class AdminPage {
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'Excluded post IDs', 'aisignal-markdown' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'Excluded post IDs', 'wp-markdown-converter' ); ?></th>
 						<td>
-							<label for="aisignal_markdown_excluded_post_ids" class="screen-reader-text">
-								<?php echo esc_html__( 'Excluded post IDs', 'aisignal-markdown' ); ?>
+							<label for="wp_markdown_converter_excluded_post_ids" class="screen-reader-text">
+								<?php echo esc_html__( 'Excluded post IDs', 'wp-markdown-converter' ); ?>
 							</label>
 							<textarea
-								id="aisignal_markdown_excluded_post_ids"
-								name="aisignal_markdown_excluded_post_ids"
+								id="wp_markdown_converter_excluded_post_ids"
+								name="wp_markdown_converter_excluded_post_ids"
 								rows="5"
 								cols="40"
 								class="large-text code"
 							><?php echo esc_textarea( implode( "\n", $excluded_post_ids ) ); ?></textarea>
 							<p class="description">
-								<?php echo esc_html__( 'Enter one post ID per line or separate them with commas. These items will be excluded from Markdown output even if their post type is enabled.', 'aisignal-markdown' ); ?>
+								<?php echo esc_html__( 'Enter one post ID per line or separate them with commas. These items will be excluded from Markdown output even if their post type is enabled.', 'wp-markdown-converter' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -357,92 +357,92 @@ class AdminPage {
 			<table class="form-table" role="presentation">
 				<tbody>
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'Enable crawler insights', 'aisignal-markdown' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'Enable crawler insights', 'wp-markdown-converter' ); ?></th>
 						<td>
-							<label for="aisignal_markdown_enable_crawler_insights">
-								<input type="hidden" name="aisignal_markdown_enable_crawler_insights" value="0" />
+							<label for="wp_markdown_converter_enable_crawler_insights">
+								<input type="hidden" name="wp_markdown_converter_enable_crawler_insights" value="0" />
 								<input
 									type="checkbox"
-									id="aisignal_markdown_enable_crawler_insights"
-									name="aisignal_markdown_enable_crawler_insights"
+									id="wp_markdown_converter_enable_crawler_insights"
+									name="wp_markdown_converter_enable_crawler_insights"
 									value="1"
 									<?php checked( $insights_enabled ); ?>
 								/>
-								<?php echo esc_html__( 'Log successful Markdown requests and show bot activity insights.', 'aisignal-markdown' ); ?>
+								<?php echo esc_html__( 'Log successful Markdown requests and show bot activity insights.', 'wp-markdown-converter' ); ?>
 							</label>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'Retention period (days)', 'aisignal-markdown' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'Retention period (days)', 'wp-markdown-converter' ); ?></th>
 						<td>
-							<label for="aisignal_markdown_crawler_retention_days" class="screen-reader-text">
-								<?php echo esc_html__( 'Retention period in days', 'aisignal-markdown' ); ?>
+							<label for="wp_markdown_converter_crawler_retention_days" class="screen-reader-text">
+								<?php echo esc_html__( 'Retention period in days', 'wp-markdown-converter' ); ?>
 							</label>
 							<input
 								type="number"
 								min="1"
 								step="1"
 								class="small-text"
-								id="aisignal_markdown_crawler_retention_days"
-								name="aisignal_markdown_crawler_retention_days"
+								id="wp_markdown_converter_crawler_retention_days"
+								name="wp_markdown_converter_crawler_retention_days"
 								value="<?php echo esc_attr( (string) $retention_days ); ?>"
 							/>
 							<p class="description">
-								<?php echo esc_html__( 'Older crawler request rows are automatically pruned each day and immediately after retention is reduced.', 'aisignal-markdown' ); ?>
+								<?php echo esc_html__( 'Older crawler request rows are automatically pruned each day and immediately after retention is reduced.', 'wp-markdown-converter' ); ?>
 							</p>
 						</td>
 					</tr>
 				</tbody>
 			</table>
-			<?php submit_button( __( 'Save Crawler Insights Settings', 'aisignal-markdown' ) ); ?>
+			<?php submit_button( __( 'Save Crawler Insights Settings', 'wp-markdown-converter' ) ); ?>
 		</form>
 
 		<?php if ( ! empty( $_GET['crawler-log-cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice flag. ?>
-			<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Crawler request log cleared.', 'aisignal-markdown' ); ?></p></div>
+			<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Crawler request log cleared.', 'wp-markdown-converter' ); ?></p></div>
 		<?php endif; ?>
 
-			<h2><?php echo esc_html__( 'Crawler Request Summary', 'aisignal-markdown' ); ?></h2>
-			<div class="aisignal-markdown-crawler-summary">
-				<div class="postbox aisignal-markdown-crawler-card">
+			<h2><?php echo esc_html__( 'Crawler Request Summary', 'wp-markdown-converter' ); ?></h2>
+			<div class="wp-markdown-converter-crawler-summary">
+				<div class="postbox wp-markdown-converter-crawler-card">
 					<div class="inside">
 						<p class="description">
-							<?php echo esc_html__( 'Total Requests', 'aisignal-markdown' ); ?>
+							<?php echo esc_html__( 'Total Requests', 'wp-markdown-converter' ); ?>
 						</p>
-						<p class="aisignal-markdown-crawler-stat">
+						<p class="wp-markdown-converter-crawler-stat">
 							<?php echo esc_html( (string) ( $stats['total_requests'] ?? 0 ) ); ?>
 						</p>
 					</div>
 				</div>
-				<div class="postbox aisignal-markdown-crawler-card">
+				<div class="postbox wp-markdown-converter-crawler-card">
 					<div class="inside">
 						<p class="description">
-							<?php echo esc_html__( 'Requests Today', 'aisignal-markdown' ); ?>
+							<?php echo esc_html__( 'Requests Today', 'wp-markdown-converter' ); ?>
 						</p>
-						<p class="aisignal-markdown-crawler-stat">
+						<p class="wp-markdown-converter-crawler-stat">
 							<?php echo esc_html( (string) ( $stats['requests_today'] ?? 0 ) ); ?>
 						</p>
 					</div>
 				</div>
-				<div class="postbox aisignal-markdown-crawler-card">
+				<div class="postbox wp-markdown-converter-crawler-card">
 					<div class="inside">
 						<p class="description">
-							<?php echo esc_html__( 'Unique Bots', 'aisignal-markdown' ); ?>
+							<?php echo esc_html__( 'Unique Bots', 'wp-markdown-converter' ); ?>
 						</p>
-						<p class="aisignal-markdown-crawler-stat">
+						<p class="wp-markdown-converter-crawler-stat">
 							<?php echo esc_html( (string) ( $stats['unique_bots'] ?? 0 ) ); ?>
 						</p>
 					</div>
 				</div>
 			</div>
 
-			<div class="tablenav top aisignal-markdown-crawler-toolbar">
-					<form method="get" class="aisignal-markdown-crawler-filter">
-						<input type="hidden" name="page" value="aisignal-markdown" />
+			<div class="tablenav top wp-markdown-converter-crawler-toolbar">
+					<form method="get" class="wp-markdown-converter-crawler-filter">
+						<input type="hidden" name="page" value="wp-markdown-converter" />
 						<input type="hidden" name="tab" value="crawler-insights" />
 						<div>
-							<label for="aisignal_markdown_crawler_filter_bot" class="aisignal-markdown-crawler-filter-label"><?php echo esc_html__( 'Filter by bot', 'aisignal-markdown' ); ?></label>
-							<select id="aisignal_markdown_crawler_filter_bot" name="bot">
-								<option value=""><?php echo esc_html__( 'All bots', 'aisignal-markdown' ); ?></option>
+							<label for="wp_markdown_converter_crawler_filter_bot" class="wp-markdown-converter-crawler-filter-label"><?php echo esc_html__( 'Filter by bot', 'wp-markdown-converter' ); ?></label>
+							<select id="wp_markdown_converter_crawler_filter_bot" name="bot">
+								<option value=""><?php echo esc_html__( 'All bots', 'wp-markdown-converter' ); ?></option>
 								<?php foreach ( $available_bots as $bot ) : ?>
 								<option value="<?php echo esc_attr( $bot['bot_key'] ); ?>" <?php selected( $selected_bot, $bot['bot_key'] ); ?>>
 									<?php echo esc_html( $bot['bot_label'] ); ?>
@@ -450,14 +450,14 @@ class AdminPage {
 							<?php endforeach; ?>
 						</select>
 					</div>
-					<?php submit_button( __( 'Filter', 'aisignal-markdown' ), 'secondary', '', false ); ?>
+					<?php submit_button( __( 'Filter', 'wp-markdown-converter' ), 'secondary', '', false ); ?>
 				</form>
 
-				<p class="description aisignal-markdown-crawler-retention-note">
+				<p class="description wp-markdown-converter-crawler-retention-note">
 					<?php
 					printf(
 						/* translators: %d: number of retention days. */
-						esc_html__( 'Retaining crawler request rows for the last %d days.', 'aisignal-markdown' ),
+						esc_html__( 'Retaining crawler request rows for the last %d days.', 'wp-markdown-converter' ),
 						(int) $retention_days
 					);
 					?>
@@ -466,29 +466,29 @@ class AdminPage {
 				<form
 					action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 					method="post"
-					class="aisignal-markdown-crawler-clear-form"
-					onsubmit="return confirm('<?php echo esc_attr__( 'Clear the entire crawler request log?', 'aisignal-markdown' ); ?>');"
+					class="wp-markdown-converter-crawler-clear-form"
+					onsubmit="return confirm('<?php echo esc_attr__( 'Clear the entire crawler request log?', 'wp-markdown-converter' ); ?>');"
 				>
-					<input type="hidden" name="action" value="aisignal_markdown_clear_crawler_log" />
-					<?php wp_nonce_field( 'aisignal_markdown_clear_crawler_log' ); ?>
-					<?php submit_button( __( 'Clear Request Log', 'aisignal-markdown' ), 'delete', 'submit', false ); ?>
+					<input type="hidden" name="action" value="wp_markdown_converter_clear_crawler_log" />
+					<?php wp_nonce_field( 'wp_markdown_converter_clear_crawler_log' ); ?>
+					<?php submit_button( __( 'Clear Request Log', 'wp-markdown-converter' ), 'delete', 'submit', false ); ?>
 				</form>
 			</div>
 
-				<h2 class="aisignal-markdown-crawler-requests-heading"><?php echo esc_html__( 'Recent Markdown Requests', 'aisignal-markdown' ); ?></h2>
+				<h2 class="wp-markdown-converter-crawler-requests-heading"><?php echo esc_html__( 'Recent Markdown Requests', 'wp-markdown-converter' ); ?></h2>
 				<table class="widefat striped">
 					<thead>
 						<tr>
-							<th scope="col"><?php echo esc_html__( 'Timestamp', 'aisignal-markdown' ); ?></th>
-							<th scope="col"><?php echo esc_html__( 'URL', 'aisignal-markdown' ); ?></th>
-							<th scope="col"><?php echo esc_html__( 'Bot Name', 'aisignal-markdown' ); ?></th>
-							<th scope="col"><?php echo esc_html__( 'Method', 'aisignal-markdown' ); ?></th>
+							<th scope="col"><?php echo esc_html__( 'Timestamp', 'wp-markdown-converter' ); ?></th>
+							<th scope="col"><?php echo esc_html__( 'URL', 'wp-markdown-converter' ); ?></th>
+							<th scope="col"><?php echo esc_html__( 'Bot Name', 'wp-markdown-converter' ); ?></th>
+							<th scope="col"><?php echo esc_html__( 'Method', 'wp-markdown-converter' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
 						<?php if ( empty( $items ) ) : ?>
 							<tr>
-								<td colspan="4"><?php echo esc_html__( 'No crawler requests recorded yet.', 'aisignal-markdown' ); ?></td>
+								<td colspan="4"><?php echo esc_html__( 'No crawler requests recorded yet.', 'wp-markdown-converter' ); ?></td>
 							</tr>
 						<?php else : ?>
 							<?php foreach ( $items as $item ) : ?>
@@ -511,7 +511,7 @@ class AdminPage {
 						[
 							'base'      => add_query_arg(
 								[
-									'page'  => 'aisignal-markdown',
+									'page'  => 'wp-markdown-converter',
 									'tab'   => 'crawler-insights',
 									'bot'   => $selected_bot,
 									'paged' => '%#%',
@@ -521,8 +521,8 @@ class AdminPage {
 							'format'    => '',
 							'current'   => $current_page,
 							'total'     => $total_pages,
-							'prev_text' => __( '&laquo;', 'aisignal-markdown' ),
-							'next_text' => __( '&raquo;', 'aisignal-markdown' ),
+							'prev_text' => __( '&laquo;', 'wp-markdown-converter' ),
+							'next_text' => __( '&raquo;', 'wp-markdown-converter' ),
 						]
 					)
 				);
@@ -539,16 +539,16 @@ class AdminPage {
 	 */
 	public function clear_crawler_log(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You are not allowed to manage crawler insights.', 'aisignal-markdown' ), '', [ 'response' => 403 ] );
+			wp_die( esc_html__( 'You are not allowed to manage crawler insights.', 'wp-markdown-converter' ), '', [ 'response' => 403 ] );
 		}
 
-		check_admin_referer( 'aisignal_markdown_clear_crawler_log' );
+		check_admin_referer( 'wp_markdown_converter_clear_crawler_log' );
 		$this->get_crawler_insights_service()->clear_logs();
 
 		wp_safe_redirect(
 			add_query_arg(
 				[
-					'page'                => 'aisignal-markdown',
+					'page'                => 'wp-markdown-converter',
 					'tab'                 => 'crawler-insights',
 					'crawler-log-cleared' => 1,
 				],
@@ -566,8 +566,8 @@ class AdminPage {
 	public function add_post_settings_meta_boxes(): void {
 		foreach ( Helpers::get_public_post_types() as $post_type ) {
 			add_meta_box(
-				'aisignal-markdown-post-settings',
-				__( 'AI Signal Markdown', 'aisignal-markdown' ),
+				'wp-markdown-converter-post-settings',
+				__( 'WP Markdown Converter', 'wp-markdown-converter' ),
 				[ $this, 'render_post_settings_meta_box' ],
 				$post_type,
 				'side',
@@ -586,23 +586,23 @@ class AdminPage {
 	public function render_post_settings_meta_box( \WP_Post $post ): void {
 		$availability = MarkdownAvailability::get_markdown_availability( $post );
 
-		wp_nonce_field( 'aisignal_markdown_post_settings', 'aisignal_markdown_post_settings_nonce' );
+		wp_nonce_field( 'wp_markdown_converter_post_settings', 'wp_markdown_converter_post_settings_nonce' );
 		?>
 		<p>
-			<label for="aisignal_markdown_excluded_post">
+			<label for="wp_markdown_converter_excluded_post">
 				<input
 					type="checkbox"
-					id="aisignal_markdown_excluded_post"
-					name="aisignal_markdown_excluded_post"
+					id="wp_markdown_converter_excluded_post"
+					name="wp_markdown_converter_excluded_post"
 					value="1"
 					<?php checked( ! empty( $availability['markdown_excluded_per_post'] ) ); ?>
 				/>
-				<?php echo esc_html__( 'Exclude from Markdown output', 'aisignal-markdown' ); ?>
+				<?php echo esc_html__( 'Exclude from Markdown output', 'wp-markdown-converter' ); ?>
 			</label>
 		</p>
 		<?php if ( ! empty( $availability['markdown_excluded_global'] ) ) : ?>
 			<p class="description">
-				<?php echo esc_html__( 'This content is also excluded by the global ID list in the plugin settings.', 'aisignal-markdown' ); ?>
+				<?php echo esc_html__( 'This content is also excluded by the global ID list in the plugin settings.', 'wp-markdown-converter' ); ?>
 			</p>
 		<?php endif; ?>
 		<?php if ( ! empty( $availability['availability_message'] ) ) : ?>
@@ -624,13 +624,13 @@ class AdminPage {
 	public function save_post_settings( int $post_id, \WP_Post $post ): void {
 		unset( $post );
 
-		if ( ! isset( $_POST['aisignal_markdown_post_settings_nonce'] ) ) {
+		if ( ! isset( $_POST['wp_markdown_converter_post_settings_nonce'] ) ) {
 			return;
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked immediately below.
-		$nonce = sanitize_text_field( wp_unslash( (string) $_POST['aisignal_markdown_post_settings_nonce'] ) );
-		if ( ! wp_verify_nonce( $nonce, 'aisignal_markdown_post_settings' ) ) {
+		$nonce = sanitize_text_field( wp_unslash( (string) $_POST['wp_markdown_converter_post_settings_nonce'] ) );
+		if ( ! wp_verify_nonce( $nonce, 'wp_markdown_converter_post_settings' ) ) {
 			return;
 		}
 
@@ -647,7 +647,7 @@ class AdminPage {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked above.
-		$exclude = isset( $_POST['aisignal_markdown_excluded_post'] ) && rest_sanitize_boolean( wp_unslash( $_POST['aisignal_markdown_excluded_post'] ) );
+		$exclude = isset( $_POST['wp_markdown_converter_excluded_post'] ) && rest_sanitize_boolean( wp_unslash( $_POST['wp_markdown_converter_excluded_post'] ) );
 
 		MarkdownAvailability::save_post_exclusion( $post_id, $exclude );
 	}
@@ -659,12 +659,12 @@ class AdminPage {
 	 */
 	protected function get_general_setting_definitions(): array {
 		return [
-			'aisignal_markdown_enable_frontmatter'         => [
+			'wp_markdown_converter_enable_frontmatter'     => [
 				'type'              => 'boolean',
 				'sanitize_callback' => [ $this, 'sanitize_frontmatter_enabled' ],
 				'default'           => false,
 			],
-			'aisignal_markdown_post_types'                 => [
+			'wp_markdown_converter_post_types'             => [
 				'type'              => 'array',
 				'sanitize_callback' => [ $this, 'sanitize_markdown_post_types' ],
 				'default'           => [ 'post', 'page' ],

@@ -2,10 +2,10 @@
 /**
  * Supplemental content extraction for thin rendered pages.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\Markdown;
+namespace WpMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

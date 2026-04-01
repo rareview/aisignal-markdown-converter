@@ -5,22 +5,28 @@
  * Handles .md URL endpoints and ?format=markdown query parameter.
  * Provides clean Markdown versions of any post/page via URL rewriting.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\Markdown;
+namespace WpMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use AiSignalMarkdown\Inc\CrawlerInsights\CrawlerInsights;
-use AiSignalMarkdown\Inc\Helpers;
+use WpMarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
+use WpMarkdownConverter\Inc\Helpers;
+use WpMarkdownConverter\Inc\Legacy;
 
 /**
  * Handle Markdown routes and responses.
  */
 class MarkdownEndpoint {
+
+	/**
+	 * Internal query var for rewritten .md requests.
+	 */
+	private const QUERY_VAR_MD = 'wp_markdown_converter_md';
 
 	/**
 	 * The Markdown converter instance.
@@ -57,13 +63,13 @@ class MarkdownEndpoint {
 	public function add_rewrite_rules() {
 		add_rewrite_rule(
 			'(.+)\.md/?$',
-			'index.php?aisignal_md=1&name=$matches[1]',
+			'index.php?' . self::QUERY_VAR_MD . '=1&name=$matches[1]',
 			'top'
 		);
 
 		add_rewrite_rule(
 			'(.+?)\.md/?$',
-			'index.php?aisignal_md=1&pagename=$matches[1]',
+			'index.php?' . self::QUERY_VAR_MD . '=1&pagename=$matches[1]',
 			'top'
 		);
 	}
@@ -76,7 +82,8 @@ class MarkdownEndpoint {
 	 * @return array Modified query vars.
 	 */
 	public function add_query_vars( $vars ) {
-		$vars[] = 'aisignal_md';
+		$vars[] = self::QUERY_VAR_MD;
+		$vars[] = Legacy::QUERY_VAR_MD;
 		$vars[] = 'format';
 		return $vars;
 	}
@@ -127,7 +134,7 @@ class MarkdownEndpoint {
 	 * @return void
 	 */
 	public function handle_markdown_request() {
-		$is_md_endpoint = get_query_var( 'aisignal_md' );
+		$is_md_endpoint = $this->is_md_query_var_set();
 		$is_format      = $this->is_query_parameter_markdown_request();
 		$is_accept      = $this->wants_markdown_response();
 
@@ -284,7 +291,7 @@ class MarkdownEndpoint {
 		 * @param array<int, string> $headers Header lines.
 		 * @param MarkdownEndpoint   $endpoint Endpoint instance.
 		 */
-		$headers = apply_filters( 'aisignal_markdown_response_headers', $headers, $this );
+		$headers = apply_filters( 'wp_markdown_converter_response_headers', $headers, $this );
 
 		return is_array( $headers ) ? array_values( $headers ) : $this->get_default_markdown_response_headers();
 	}
@@ -325,7 +332,7 @@ class MarkdownEndpoint {
 					'title'      => 'ASC',
 				],
 			],
-			'aisignal_markdown_homepage_key_pages_args'
+			'wp_markdown_converter_homepage_key_pages_args'
 		);
 
 		if ( ! empty( $key_pages ) ) {
@@ -346,7 +353,7 @@ class MarkdownEndpoint {
 				'orderby'        => 'date',
 				'order'          => 'DESC',
 			],
-			'aisignal_markdown_homepage_recent_posts_args'
+			'wp_markdown_converter_homepage_recent_posts_args'
 		);
 
 		if ( ! empty( $recent ) ) {
@@ -376,7 +383,7 @@ class MarkdownEndpoint {
 		 * @param string           $markdown Homepage markdown.
 		 * @param MarkdownEndpoint $endpoint Endpoint instance.
 		 */
-		return (string) apply_filters( 'aisignal_markdown_homepage_output', $markdown, $this );
+		return (string) apply_filters( 'wp_markdown_converter_homepage_output', $markdown, $this );
 	}
 
 	/**
@@ -500,7 +507,7 @@ class MarkdownEndpoint {
 		$url = get_permalink( $post );
 
 		if ( function_exists( 'wp_safe_redirect' ) ) {
-			wp_safe_redirect( $url, 302, 'AI Signal Markdown' );
+			wp_safe_redirect( $url, 302, 'WP Markdown Converter' );
 			exit;
 		}
 
@@ -537,7 +544,7 @@ class MarkdownEndpoint {
 		}
 
 		if ( function_exists( 'wp_die' ) ) {
-			wp_die( esc_html__( 'Not Found', 'aisignal-markdown' ), '', [ 'response' => 404 ] );
+			wp_die( esc_html__( 'Not Found', 'wp-markdown-converter' ), '', [ 'response' => 404 ] );
 		}
 
 		exit;
@@ -561,7 +568,7 @@ class MarkdownEndpoint {
 	 */
 	public function register_rest_routes() {
 		register_rest_route(
-			'aisignal-markdown/v1',
+			'wp-markdown-converter/v1',
 			'/markdown/(?P<id>\d+)',
 			[
 				'methods'             => 'GET',
@@ -578,7 +585,7 @@ class MarkdownEndpoint {
 		);
 
 		register_rest_route(
-			'aisignal-markdown/v1',
+			'wp-markdown-converter/v1',
 			'/markdown',
 			[
 				'methods'             => 'GET',
@@ -649,7 +656,7 @@ class MarkdownEndpoint {
 		 * @param \WP_Post             $post Post object.
 		 * @param mixed                $request REST request object.
 		 */
-		$filtered = apply_filters( 'aisignal_markdown_rest_response', $response, $post, $request );
+		$filtered = apply_filters( 'wp_markdown_converter_rest_response', $response, $post, $request );
 
 		return is_array( $filtered ) ? $filtered : $response;
 	}
@@ -688,7 +695,7 @@ class MarkdownEndpoint {
 		return [
 			'Content-Type: ' . Helpers::markdown_content_type(),
 			'X-Content-Type-Options: nosniff',
-			'X-AISignal-Markdown: ' . AISIGNAL_MARKDOWN_VERSION,
+			'X-WP-Markdown-Converter: ' . WP_MARKDOWN_CONVERTER_VERSION,
 			'Cache-Control: public, max-age=3600',
 		];
 	}
@@ -733,8 +740,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'aisignal_markdown_homepage_key_pages_args' === $filter_name ) {
-			return (array) apply_filters( 'aisignal_markdown_homepage_key_pages_args', $query_args, $this );
+		if ( 'wp_markdown_converter_homepage_key_pages_args' === $filter_name ) {
+			return (array) apply_filters( 'wp_markdown_converter_homepage_key_pages_args', $query_args, $this );
 		}
 
 		/**
@@ -743,8 +750,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'aisignal_markdown_homepage_recent_posts_args' === $filter_name ) {
-			return (array) apply_filters( 'aisignal_markdown_homepage_recent_posts_args', $query_args, $this );
+		if ( 'wp_markdown_converter_homepage_recent_posts_args' === $filter_name ) {
+			return (array) apply_filters( 'wp_markdown_converter_homepage_recent_posts_args', $query_args, $this );
 		}
 
 		return $query_args;
@@ -836,7 +843,7 @@ class MarkdownEndpoint {
 	protected function get_request_surface(): string {
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) ) : '';
 
-		if ( (bool) get_query_var( 'aisignal_md' ) || preg_match( '/\.md(?:\/)?(?:\?|$)/', $request_uri ) ) {
+		if ( $this->is_md_query_var_set() || preg_match( '/\.md(?:\/)?(?:\?|$)/', $request_uri ) ) {
 			return 'md';
 		}
 
@@ -849,5 +856,14 @@ class MarkdownEndpoint {
 		}
 
 		return 'markdown';
+	}
+
+	/**
+	 * Determine whether either supported .md query var is present.
+	 *
+	 * @return bool
+	 */
+	protected function is_md_query_var_set(): bool {
+		return (bool) ( get_query_var( self::QUERY_VAR_MD ) || get_query_var( Legacy::QUERY_VAR_MD ) );
 	}
 }

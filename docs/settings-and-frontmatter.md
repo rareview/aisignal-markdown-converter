@@ -5,7 +5,7 @@
 The plugin adds a settings screen at:
 
 ```text
-Settings > AI Signal Markdown
+Settings > WP Markdown Converter
 ```
 
 It has two tabs:
@@ -29,7 +29,7 @@ This global exclusion list overrides enabled post types. Add one post ID per lin
 
 ## Per-post Exclusion
 
-Every public post type gets an `AI Signal Markdown` side metabox in the editor with:
+Every public post type gets a `WP Markdown Converter` side metabox in the editor with:
 
 - `Exclude from Markdown output`
 

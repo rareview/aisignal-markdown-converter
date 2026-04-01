@@ -2,10 +2,10 @@
 /**
  * Capture rendered singular-page HTML for markdown generation.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\Markdown;
+namespace WpMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -58,7 +58,7 @@ class RenderedPageCapture {
 			 * @param string   $html Rendered HTML.
 			 * @param \WP_Post $post Post object.
 			 */
-			return (string) apply_filters( 'aisignal_markdown_rendered_html', $html, $post );
+			return (string) apply_filters( 'wp_markdown_converter_rendered_html', $html, $post );
 		}
 
 		return '';
@@ -307,7 +307,7 @@ class RenderedPageCapture {
 		 * @param string   $template Template path.
 		 * @param \WP_Post $post     Post object.
 		 */
-		return (string) apply_filters( 'aisignal_markdown_template', $template, $post );
+		return (string) apply_filters( 'wp_markdown_converter_template', $template, $post );
 	}
 
 	/**
@@ -325,13 +325,13 @@ class RenderedPageCapture {
 
 		if ( preg_match( '/<h1\b/i', $content ) ) {
 			return sprintf(
-				'<main class="aisignal-markdown-content"><article class="aisignal-markdown-article">%s</article></main>',
+				'<main class="wp-markdown-converter-content"><article class="wp-markdown-converter-article">%s</article></main>',
 				$content
 			);
 		}
 
 		return sprintf(
-			'<main class="aisignal-markdown-content"><article class="aisignal-markdown-article"><h1>%s</h1>%s</article></main>',
+			'<main class="wp-markdown-converter-content"><article class="wp-markdown-converter-article"><h1>%s</h1>%s</article></main>',
 			esc_html( get_the_title( $post ) ),
 			$content
 		);
@@ -431,7 +431,7 @@ class RenderedPageCapture {
 		 * @param string        $content Sanitized HTML fragment.
 		 * @param \WP_Post|null $post    Optional post object.
 		 */
-		return (string) apply_filters( 'aisignal_markdown_filtered_content_fragment', $content, $post );
+		return (string) apply_filters( 'wp_markdown_converter_filtered_content_fragment', $content, $post );
 	}
 
 	/**
@@ -459,7 +459,7 @@ class RenderedPageCapture {
 		 *
 		 * @param array<int, string> $patterns Regex patterns.
 		 */
-		return apply_filters( 'aisignal_markdown_invalid_template_patterns', $this->invalid_source_patterns );
+		return apply_filters( 'wp_markdown_converter_invalid_template_patterns', $this->invalid_source_patterns );
 	}
 
 	/**

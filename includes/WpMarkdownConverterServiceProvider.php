@@ -1,11 +1,11 @@
 <?php
 /**
- * AI Signal Markdown service provider.
+ * WP Markdown Converter service provider.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc;
+namespace WpMarkdownConverter\Inc;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,7 +14,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin service provider.
  */
-class AiSignalMarkdownServiceProvider {
+class WpMarkdownConverterServiceProvider {
+
+	/**
+	 * Legacy option name map.
+	 *
+	 * @var array<string, string>
+	 */
+	private const LEGACY_OPTION_MAP = [
+		'wp_markdown_converter_post_types'              => Legacy::OPTION_POST_TYPES,
+		'wp_markdown_converter_enable_frontmatter'      => Legacy::OPTION_ENABLE_FRONTMATTER,
+		CrawlerInsights\CrawlerInsights::OPTION_ENABLED => Legacy::OPTION_ENABLE_CRAWLER_INSIGHTS,
+		CrawlerInsights\CrawlerInsights::OPTION_RETENTION_DAYS => Legacy::OPTION_CRAWLER_RETENTION_DAYS,
+		CrawlerInsights\CrawlerInsights::OPTION_SCHEMA_VERSION => Legacy::OPTION_CRAWLER_SCHEMA_VERSION,
+		Markdown\MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => Legacy::OPTION_EXCLUDED_POST_IDS,
+	];
 
 	/**
 	 * The plugin services that should be bootstrapped.
@@ -35,13 +49,15 @@ class AiSignalMarkdownServiceProvider {
 	 * @return void
 	 */
 	public function __construct() {
+		self::maybe_migrate_legacy_options();
+
 		foreach ( $this->get_services() as $service ) {
 			if ( class_exists( $service ) ) {
 				new $service();
 			}
 		}
 
-		add_action( 'after_plugin_row_' . plugin_basename( AISIGNAL_MARKDOWN_PLUGIN_FILE ), [ $this, 'render_plugin_row_notice' ], 10, 3 );
+		add_action( 'after_plugin_row_' . plugin_basename( WP_MARKDOWN_CONVERTER_PLUGIN_FILE ), [ $this, 'render_plugin_row_notice' ], 10, 3 );
 	}
 
 	/**
@@ -53,11 +69,11 @@ class AiSignalMarkdownServiceProvider {
 		$services = self::$services;
 
 		/**
-		 * Filter the list of AI Signal Markdown services that should be bootstrapped.
+		 * Filter the list of WP Markdown Converter services that should be bootstrapped.
 		 *
 		 * @param array<int, string> $services Service class names.
 		 */
-		$services = apply_filters( 'aisignal_markdown_services', $services );
+		$services = apply_filters( 'wp_markdown_converter_services', $services );
 		if ( ! is_array( $services ) ) {
 			return self::$services;
 		}
@@ -84,8 +100,8 @@ class AiSignalMarkdownServiceProvider {
 	 */
 	public static function activate(): void {
 		$defaults = [
-			'aisignal_markdown_post_types'         => [ 'post', 'page' ],
-			'aisignal_markdown_enable_frontmatter' => false,
+			'wp_markdown_converter_post_types'         => [ 'post', 'page' ],
+			'wp_markdown_converter_enable_frontmatter' => false,
 			CrawlerInsights\CrawlerInsights::OPTION_ENABLED => false,
 			CrawlerInsights\CrawlerInsights::OPTION_RETENTION_DAYS => 30,
 			Markdown\MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => [],
@@ -97,12 +113,35 @@ class AiSignalMarkdownServiceProvider {
 			}
 		}
 
+		self::maybe_migrate_legacy_options();
+
 		$endpoint = new Markdown\MarkdownEndpoint();
 		$endpoint->add_rewrite_rules();
 		$crawler_insights = new CrawlerInsights\CrawlerInsights();
 		$crawler_insights->maybe_install_table();
 		$crawler_insights->ensure_prune_schedule();
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Copy legacy option values to the new prefix when needed.
+	 *
+	 * @return void
+	 */
+	private static function maybe_migrate_legacy_options(): void {
+		foreach ( self::LEGACY_OPTION_MAP as $new_option => $legacy_option ) {
+			if ( null !== get_option( $new_option, null ) ) {
+				continue;
+			}
+
+			$legacy_value = get_option( $legacy_option, null );
+
+			if ( null === $legacy_value ) {
+				continue;
+			}
+
+			update_option( $new_option, $legacy_value );
+		}
 	}
 
 	/**
@@ -128,10 +167,10 @@ class AiSignalMarkdownServiceProvider {
 		unset( $plugin_file, $plugin_data, $status );
 
 		$columns = function_exists( 'wp_is_auto_update_enabled_for_type' ) && wp_is_auto_update_enabled_for_type( 'plugin' ) ? 4 : 3;
-		$message = __( 'AI Signal Markdown is currently an alpha release intended for evaluation and development use. Expect occasional rough edges and verify behavior carefully before relying on it in production.', 'aisignal-markdown' );
+		$message = __( 'WP Markdown Converter is currently an alpha release intended for evaluation and development use. Expect occasional rough edges and verify behavior carefully before relying on it in production.', 'wp-markdown-converter' );
 
 		printf(
-			'<tr class="plugin-update-tr aisignal-markdown-plugin-row-notice"><td colspan="%1$d" class="plugin-update colspanchange"><div class="notice inline notice-warning notice-alt"><p>%2$s</p></div></td></tr>',
+			'<tr class="plugin-update-tr wp-markdown-converter-plugin-row-notice"><td colspan="%1$d" class="plugin-update colspanchange"><div class="notice inline notice-warning notice-alt"><p>%2$s</p></div></td></tr>',
 			esc_attr( (string) $columns ),
 			esc_html( $message )
 		);

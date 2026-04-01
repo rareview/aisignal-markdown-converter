@@ -2,10 +2,10 @@
 /**
  * Preprocess HTML fragments before markdown rendering.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\Markdown\Engine;
+namespace WpMarkdownConverter\Inc\Markdown\Engine;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -42,7 +42,7 @@ class WpHtmlApiHtmlPreprocessor {
 			return $html;
 		}
 
-		$root = $dom->getElementById( 'aisignal-root' );
+		$root = $dom->getElementById( 'wp-markdown-converter-root' );
 		if ( ! $root instanceof \DOMElement ) {
 			return $html;
 		}
@@ -81,7 +81,7 @@ class WpHtmlApiHtmlPreprocessor {
 	private function load_fragment_dom( string $html ) {
 		$dom             = new \DOMDocument( '1.0', 'UTF-8' );
 		$libxml_previous = libxml_use_internal_errors( true );
-		$wrapped         = '<!DOCTYPE html><html><body><div id="aisignal-root">' . $html . '</div></body></html>';
+		$wrapped         = '<!DOCTYPE html><html><body><div id="wp-markdown-converter-root">' . $html . '</div></body></html>';
 		$loaded          = $dom->loadHTML( '<?xml encoding="UTF-8">' . $wrapped );
 		libxml_clear_errors();
 		libxml_use_internal_errors( $libxml_previous );
@@ -277,7 +277,7 @@ class WpHtmlApiHtmlPreprocessor {
 	 * @return string
 	 */
 	private function store_raw_html_placeholder( \DOMElement $node ): string {
-		$placeholder = 'AISIGNALRAWHTMLTABLE' . ( count( $this->raw_html_placeholders ) + 1 ) . 'TOKEN';
+		$placeholder = 'WPMARKDOWNCONVERTERRAWHTMLTABLE' . ( count( $this->raw_html_placeholders ) + 1 ) . 'TOKEN';
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM API property name.
 		$document = $node->ownerDocument;
 		$html     = $document instanceof \DOMDocument ? trim( $document->saveHTML( $node ) ) : '';

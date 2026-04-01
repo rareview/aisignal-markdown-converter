@@ -1,6 +1,6 @@
-# AI Signal Markdown
+# WP Markdown Converter
 
-AI Signal Markdown is a lightweight WordPress plugin that exposes public content as Markdown through normal WordPress routes.
+WP Markdown Converter is a lightweight WordPress plugin that exposes public content as Markdown through normal WordPress routes.
 
 The plugin supports query-string and `.md` routes, REST access, alternate Markdown discovery signals, optional YAML frontmatter, and optional crawler insights.
 
@@ -14,9 +14,9 @@ The plugin supports query-string and `.md` routes, REST access, alternate Markdo
 
 ## Quick Start
 
-1. Place the plugin in `wp-content/plugins/aisignal-markdown`.
+1. Place the plugin in `wp-content/plugins/wp-markdown-converter`.
 2. Activate it in WordPress.
-3. Open `Settings > AI Signal Markdown`.
+3. Open `Settings > WP Markdown Converter`.
 4. Choose which public post types should expose Markdown.
 5. Optionally enable YAML frontmatter and crawler insights.
 
@@ -33,7 +33,7 @@ Check a few real routes after activation:
 ```bash
 curl -i https://example.com/about/?format=markdown
 curl -i https://example.com/about.md
-curl -i https://example.com/wp-json/aisignal-markdown/v1/markdown?slug=about
+curl -i https://example.com/wp-json/wp-markdown-converter/v1/markdown?slug=about
 curl -i -H 'Accept: text/markdown' https://example.com/about/
 ```
 
@@ -77,5 +77,5 @@ The Markdown pipeline is intentionally small:
 
 - `readme.txt` is the WordPress.org-facing document.
 - `README.md` and `docs/` are developer-facing docs.
-- Keep [aisignal-markdown.php](./aisignal-markdown.php), [readme.txt](./readme.txt), and [license.txt](./license.txt) aligned on version and license.
+- Keep [wp-markdown-converter.php](./wp-markdown-converter.php), [readme.txt](./readme.txt), and [license.txt](./license.txt) aligned on version and license.
 - Runtime-only deployment scripts can exclude docs, tests, and other dev files without affecting plugin behavior.

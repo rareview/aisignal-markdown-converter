@@ -1,18 +1,18 @@
-=== AI Signal Markdown ===
+=== WP Markdown Converter ===
 Contributors: rareview
 Tags: markdown, headless, api, content
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 0.0.1-alpha
-License: GPL-2.0-or-later
+Stable tag: 1.0.0
+License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Expose public WordPress content as Markdown through query parameters, `.md` URLs, and REST endpoints.
 
 == Description ==
 
-AI Signal Markdown is a lightweight WordPress plugin that exposes eligible published content as Markdown while staying close to normal WordPress routing and output behavior.
+WP Markdown Converter is a lightweight WordPress plugin that exposes eligible published content as Markdown while staying close to normal WordPress routing and output behavior.
 
 Features include:
 
@@ -26,13 +26,13 @@ Features include:
 * post type controls and exclusion controls for Markdown availability
 * optional crawler insights with bot detection, request logging, retention, and filtering
 
-This plugin is currently in alpha and is best suited for evaluation and development use.
+This plugin is best suited for evaluation and development use.
 
 == Installation ==
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin through the WordPress Plugins screen.
-3. Go to `Settings > AI Signal Markdown`.
+3. Go to `Settings > WP Markdown Converter`.
 4. Choose which public post types should expose Markdown.
 5. Optionally enable YAML frontmatter and crawler insights.
 
@@ -71,6 +71,6 @@ Crawler insights stores request metadata for detected bot traffic to successful 
 
 == Changelog ==
 
-= 0.0.1-alpha =
+= 1.0.0 =
 
-* Initial public alpha
+* Current release

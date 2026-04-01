@@ -2,10 +2,10 @@
 /**
  * Bot detection for crawler insights.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\CrawlerInsights;
+namespace WpMarkdownConverter\Inc\CrawlerInsights;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -168,7 +168,7 @@ class BotDetector {
 		 *
 		 * @param array<int, array<string, mixed>> $patterns Crawler pattern definitions.
 		 */
-		$patterns = apply_filters( 'aisignal_markdown_crawler_patterns', $patterns );
+		$patterns = apply_filters( 'wp_markdown_converter_crawler_patterns', $patterns );
 
 		if ( ! is_array( $patterns ) ) {
 			return [];

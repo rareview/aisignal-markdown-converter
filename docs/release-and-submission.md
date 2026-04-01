@@ -19,7 +19,7 @@ Also manually verify at least:
 
 Keep these aligned:
 
-- [aisignal-markdown.php](../aisignal-markdown.php)
+- [wp-markdown-converter.php](../wp-markdown-converter.php)
 - [readme.txt](../readme.txt)
 - [license.txt](../license.txt)
 

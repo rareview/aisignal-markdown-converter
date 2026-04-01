@@ -1,4 +1,4 @@
-# AI Signal Markdown Docs
+# WP Markdown Converter Docs
 
 This documentation set supplements the WordPress.org-facing [readme.txt](../readme.txt).
 

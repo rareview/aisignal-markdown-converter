@@ -2,10 +2,10 @@
 /**
  * Helpers class.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc;
+namespace WpMarkdownConverter\Inc;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,7 +23,11 @@ class Helpers {
 	 */
 	public static function get_enabled_post_types(): array {
 		$allowed = self::get_public_post_types();
-		$option  = get_option( 'aisignal_markdown_post_types', null );
+		$option  = get_option( 'wp_markdown_converter_post_types', null );
+
+		if ( ! is_array( $option ) ) {
+			$option = get_option( Legacy::OPTION_POST_TYPES, null );
+		}
 
 		if ( ! is_array( $option ) ) {
 			$option = [ 'post', 'page' ];
@@ -40,7 +44,13 @@ class Helpers {
 	 * @return bool
 	 */
 	public static function is_frontmatter_enabled(): bool {
-		return (bool) get_option( 'aisignal_markdown_enable_frontmatter', false );
+		$enabled = get_option( 'wp_markdown_converter_enable_frontmatter', null );
+
+		if ( null === $enabled ) {
+			$enabled = get_option( Legacy::OPTION_ENABLE_FRONTMATTER, false );
+		}
+
+		return (bool) $enabled;
 	}
 
 	/**

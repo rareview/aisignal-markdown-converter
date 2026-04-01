@@ -2,18 +2,18 @@
 /**
  * Rendered-first markdown conversion for WordPress content.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\Markdown;
+namespace WpMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 
-use AiSignalMarkdown\Inc\Helpers;
-use AiSignalMarkdown\Inc\Markdown\Engine\WpHtmlApiMarkdownEngine;
+use WpMarkdownConverter\Inc\Helpers;
+use WpMarkdownConverter\Inc\Markdown\Engine\WpHtmlApiMarkdownEngine;
 /**
  * Markdown converter.
  */
@@ -102,7 +102,7 @@ class MarkdownConverter {
 		 * @param string   $markdown Markdown content.
 		 * @param \WP_Post $post     Post object.
 		 */
-		return apply_filters( 'aisignal_markdown_output', $markdown, $post );
+		return apply_filters( 'wp_markdown_converter_output', $markdown, $post );
 	}
 
 	/**
@@ -477,7 +477,7 @@ class MarkdownConverter {
 		$heading_hits = preg_match_all( '/^#{1,4}\s+/m', $markdown );
 		$list_hits    = preg_match_all( '/^(?:[-*+]\s|\d+\.\s)/m', $markdown );
 		$table_hits   = preg_match_all( '/^\|.*\|$/m', $markdown );
-		$threshold    = (int) apply_filters( 'aisignal_markdown_thin_word_threshold', 120 );
+		$threshold    = (int) apply_filters( 'wp_markdown_converter_thin_word_threshold', 120 );
 
 		if ( $word_count >= $threshold ) {
 			return false;

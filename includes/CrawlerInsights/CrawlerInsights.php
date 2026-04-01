@@ -2,15 +2,16 @@
 /**
  * Crawler insights service.
  *
- * @package AiSignalMarkdown
+ * @package WpMarkdownConverter
  */
 
-namespace AiSignalMarkdown\Inc\CrawlerInsights;
+namespace WpMarkdownConverter\Inc\CrawlerInsights;
 
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
 use WP_Post;
+use WpMarkdownConverter\Inc\Legacy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -24,17 +25,17 @@ class CrawlerInsights {
 	/**
 	 * Toggle option.
 	 */
-	public const OPTION_ENABLED = 'aisignal_markdown_enable_crawler_insights';
+	public const OPTION_ENABLED = 'wp_markdown_converter_enable_crawler_insights';
 
 	/**
 	 * Retention option.
 	 */
-	public const OPTION_RETENTION_DAYS = 'aisignal_markdown_crawler_retention_days';
+	public const OPTION_RETENTION_DAYS = 'wp_markdown_converter_crawler_retention_days';
 
 	/**
 	 * Schema version option.
 	 */
-	public const OPTION_SCHEMA_VERSION = 'aisignal_markdown_crawler_log_schema_version';
+	public const OPTION_SCHEMA_VERSION = 'wp_markdown_converter_crawler_log_schema_version';
 
 	/**
 	 * Current schema version.
@@ -44,7 +45,7 @@ class CrawlerInsights {
 	/**
 	 * Daily prune cron hook.
 	 */
-	public const CRON_HOOK = 'aisignal_markdown_prune_request_log';
+	public const CRON_HOOK = 'wp_markdown_converter_prune_request_log';
 
 	/**
 	 * Guard duplicate hook registration.
@@ -103,7 +104,13 @@ class CrawlerInsights {
 	 * @return bool
 	 */
 	public function is_enabled(): bool {
-		return (bool) rest_sanitize_boolean( get_option( self::OPTION_ENABLED, false ) );
+		$enabled = get_option( self::OPTION_ENABLED, null );
+
+		if ( null === $enabled ) {
+			$enabled = get_option( Legacy::OPTION_ENABLE_CRAWLER_INSIGHTS, false );
+		}
+
+		return (bool) rest_sanitize_boolean( $enabled );
 	}
 
 	/**
@@ -124,7 +131,13 @@ class CrawlerInsights {
 	 * @return int
 	 */
 	public function get_retention_days(): int {
-		return $this->sanitize_retention_days( get_option( self::OPTION_RETENTION_DAYS, 30 ) );
+		$retention = get_option( self::OPTION_RETENTION_DAYS, null );
+
+		if ( null === $retention ) {
+			$retention = get_option( Legacy::OPTION_CRAWLER_RETENTION_DAYS, 30 );
+		}
+
+		return $this->sanitize_retention_days( $retention );
 	}
 
 	/**
@@ -162,7 +175,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed>  $context Request context.
 		 * @param CrawlerInsights       $service Service instance.
 		 */
-		$should_log = (bool) apply_filters( 'aisignal_markdown_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
+		$should_log = (bool) apply_filters( 'wp_markdown_converter_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
 		if ( ! $should_log ) {
 			return false;
 		}
@@ -174,7 +187,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed> $context Request context.
 		 * @param CrawlerInsights      $service Service instance.
 		 */
-		$entry = apply_filters( 'aisignal_markdown_crawler_log_entry', $entry, $context, $this );
+		$entry = apply_filters( 'wp_markdown_converter_crawler_log_entry', $entry, $context, $this );
 		if ( ! is_array( $entry ) ) {
 			return false;
 		}
@@ -264,7 +277,13 @@ class CrawlerInsights {
 	 * @return void
 	 */
 	public function maybe_install_table(): void {
-		if ( self::SCHEMA_VERSION === (string) get_option( self::OPTION_SCHEMA_VERSION, '' ) ) {
+		$schema_version = get_option( self::OPTION_SCHEMA_VERSION, null );
+
+		if ( null === $schema_version ) {
+			$schema_version = get_option( Legacy::OPTION_CRAWLER_SCHEMA_VERSION, '' );
+		}
+
+		if ( self::SCHEMA_VERSION === (string) $schema_version ) {
 			return;
 		}
 
@@ -362,6 +381,7 @@ class CrawlerInsights {
 	public static function unschedule_prune_event(): void {
 		if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
 			wp_clear_scheduled_hook( self::CRON_HOOK );
+			wp_clear_scheduled_hook( Legacy::CRON_HOOK_PRUNE_REQUEST_LOG );
 		}
 	}
 
