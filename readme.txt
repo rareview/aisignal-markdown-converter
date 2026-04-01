@@ -1,7 +1,7 @@
 === WP Markdown Converter ===
 Contributors: rareview
-Tags: markdown, headless, api, content
-Requires at least: 6.4
+Tags: markdown, rest-api, headless, yaml
+Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.0
 Stable tag: 1.0.0
