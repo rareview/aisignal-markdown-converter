@@ -48,6 +48,7 @@ class AdminPage {
 		if ( function_exists( 'is_admin' ) && is_admin() && function_exists( 'add_action' ) ) {
 			add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 			add_action( 'admin_init', [ $this, 'register_settings' ] );
+			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
 			add_action( 'admin_post_aisignal_markdown_clear_crawler_log', [ $this, 'clear_crawler_log' ] );
 			add_action( 'add_meta_boxes', [ $this, 'add_post_settings_meta_boxes' ] );
 			add_action( 'save_post', [ $this, 'save_post_settings' ], 10, 2 );
@@ -73,6 +74,26 @@ class AdminPage {
 			'manage_options',
 			'aisignal-markdown',
 			[ $this, 'render_page' ]
+		);
+	}
+
+	/**
+	 * Enqueue admin assets for the plugin settings page.
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix.
+	 *
+	 * @return void
+	 */
+	public function enqueue_admin_assets( string $hook_suffix ): void {
+		if ( 'settings_page_aisignal-markdown' !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'aisignal-markdown-admin',
+			plugins_url( 'assets/css/admin.css', AISIGNAL_MARKDOWN_PLUGIN_FILE ),
+			[],
+			AISIGNAL_MARKDOWN_VERSION
 		);
 	}
 
@@ -381,51 +402,45 @@ class AdminPage {
 		<?php endif; ?>
 
 			<h2><?php echo esc_html__( 'Crawler Request Summary', 'aisignal-markdown' ); ?></h2>
-			<div
-				class="aisignal-markdown-crawler-summary"
-				style="display:flex;flex-wrap:wrap;gap:12px;margin:1rem 0;"
-			>
-				<div class="postbox" style="flex:1 1 220px;min-width:220px;margin:0;">
-					<div class="inside" style="margin:0;padding-top:16px;padding-bottom:16px;">
-						<p class="description" style="margin-top:0;">
+			<div class="aisignal-markdown-crawler-summary">
+				<div class="postbox aisignal-markdown-crawler-card">
+					<div class="inside">
+						<p class="description">
 							<?php echo esc_html__( 'Total Requests', 'aisignal-markdown' ); ?>
 						</p>
-						<p style="margin:0;font-size:32px;line-height:1.1;font-weight:600;">
+						<p class="aisignal-markdown-crawler-stat">
 							<?php echo esc_html( (string) ( $stats['total_requests'] ?? 0 ) ); ?>
 						</p>
 					</div>
 				</div>
-				<div class="postbox" style="flex:1 1 220px;min-width:220px;margin:0;">
-					<div class="inside" style="margin:0;padding-top:16px;padding-bottom:16px;">
-						<p class="description" style="margin-top:0;">
+				<div class="postbox aisignal-markdown-crawler-card">
+					<div class="inside">
+						<p class="description">
 							<?php echo esc_html__( 'Requests Today', 'aisignal-markdown' ); ?>
 						</p>
-						<p style="margin:0;font-size:32px;line-height:1.1;font-weight:600;">
+						<p class="aisignal-markdown-crawler-stat">
 							<?php echo esc_html( (string) ( $stats['requests_today'] ?? 0 ) ); ?>
 						</p>
 					</div>
 				</div>
-				<div class="postbox" style="flex:1 1 220px;min-width:220px;margin:0;">
-					<div class="inside" style="margin:0;padding-top:16px;padding-bottom:16px;">
-						<p class="description" style="margin-top:0;">
+				<div class="postbox aisignal-markdown-crawler-card">
+					<div class="inside">
+						<p class="description">
 							<?php echo esc_html__( 'Unique Bots', 'aisignal-markdown' ); ?>
 						</p>
-						<p style="margin:0;font-size:32px;line-height:1.1;font-weight:600;">
+						<p class="aisignal-markdown-crawler-stat">
 							<?php echo esc_html( (string) ( $stats['unique_bots'] ?? 0 ) ); ?>
 						</p>
 					</div>
 				</div>
 			</div>
 
-			<div
-				class="tablenav top"
-				style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 1rem;"
-			>
-					<form method="get" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin:0;">
+			<div class="tablenav top aisignal-markdown-crawler-toolbar">
+					<form method="get" class="aisignal-markdown-crawler-filter">
 						<input type="hidden" name="page" value="aisignal-markdown" />
 						<input type="hidden" name="tab" value="crawler-insights" />
 						<div>
-							<label for="aisignal_markdown_crawler_filter_bot" style="display:block;margin-bottom:6px;"><?php echo esc_html__( 'Filter by bot', 'aisignal-markdown' ); ?></label>
+							<label for="aisignal_markdown_crawler_filter_bot" class="aisignal-markdown-crawler-filter-label"><?php echo esc_html__( 'Filter by bot', 'aisignal-markdown' ); ?></label>
 							<select id="aisignal_markdown_crawler_filter_bot" name="bot">
 								<option value=""><?php echo esc_html__( 'All bots', 'aisignal-markdown' ); ?></option>
 								<?php foreach ( $available_bots as $bot ) : ?>
@@ -438,7 +453,7 @@ class AdminPage {
 					<?php submit_button( __( 'Filter', 'aisignal-markdown' ), 'secondary', '', false ); ?>
 				</form>
 
-				<p class="description" style="margin:0;flex:1 1 240px;">
+				<p class="description aisignal-markdown-crawler-retention-note">
 					<?php
 					printf(
 						/* translators: %d: number of retention days. */
@@ -451,7 +466,7 @@ class AdminPage {
 				<form
 					action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 					method="post"
-					style="margin:0;"
+					class="aisignal-markdown-crawler-clear-form"
 					onsubmit="return confirm('<?php echo esc_attr__( 'Clear the entire crawler request log?', 'aisignal-markdown' ); ?>');"
 				>
 					<input type="hidden" name="action" value="aisignal_markdown_clear_crawler_log" />
@@ -460,7 +475,7 @@ class AdminPage {
 				</form>
 			</div>
 
-				<h2 style="margin-top:2.5rem;"><?php echo esc_html__( 'Recent Markdown Requests', 'aisignal-markdown' ); ?></h2>
+				<h2 class="aisignal-markdown-crawler-requests-heading"><?php echo esc_html__( 'Recent Markdown Requests', 'aisignal-markdown' ); ?></h2>
 				<table class="widefat striped">
 					<thead>
 						<tr>
