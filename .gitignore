@@ -1,4 +1,5 @@
 .idea
+AGENTS.md
 node_modules
 vendor
 /dist
