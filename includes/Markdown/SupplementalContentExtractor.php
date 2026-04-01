@@ -17,20 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SupplementalContentExtractor {
 
 	/**
-	 * Rendered page capture service.
-	 *
-	 * @var RenderedPageCapture
-	 */
-	protected $capture;
-
-	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-		$this->capture = new RenderedPageCapture();
-	}
-
-	/**
 	 * Extract supplemental HTML for a post.
 	 *
 	 * @param \WP_Post $post Post object.

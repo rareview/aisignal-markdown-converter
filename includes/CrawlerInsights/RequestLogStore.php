@@ -314,28 +314,4 @@ class RequestLogStore {
 
 		return 'wp_wp_markdown_converter_request_log';
 	}
-
-	/**
-	 * Check whether a table exists.
-	 *
-	 * @param string $table_name Table name.
-	 *
-	 * @return bool
-	 */
-	protected function table_exists( string $table_name ): bool {
-		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_var' ) ) {
-			return false;
-		}
-
-		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The query is prepared immediately below.
-		$result = $this->wpdb->get_var(
-			$this->wpdb->prepare(
-				'SHOW TABLES LIKE %s',
-				$table_name
-			)
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
-
-		return is_string( $result ) && $table_name === $result;
-	}
 }

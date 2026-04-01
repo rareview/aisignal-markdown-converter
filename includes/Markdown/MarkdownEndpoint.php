@@ -401,7 +401,7 @@ class MarkdownEndpoint {
 			return null;
 		}
 
-		$enabled_types = $this->get_enabled_markdown_types();
+		$enabled_types = Helpers::get_enabled_post_types();
 		$post_types    = ! empty( $post_types ) ? array_values( array_intersect( (array) $post_types, $enabled_types ) ) : $enabled_types;
 
 		if ( empty( $post_types ) ) {
@@ -441,15 +441,6 @@ class MarkdownEndpoint {
 		}
 
 		return $posts[0];
-	}
-
-	/**
-	 * Get enabled markdown post types.
-	 *
-	 * @return array
-	 */
-	protected function get_enabled_markdown_types() {
-		return Helpers::get_enabled_post_types();
 	}
 
 	/**
@@ -609,9 +600,9 @@ class MarkdownEndpoint {
 	public function rest_get_markdown_by_slug( $request ) {
 		$slug       = $request->get_param( 'slug' );
 		$type       = $request->get_param( 'type' );
-		$post_types = '' !== $type ? [ $type ] : $this->get_enabled_markdown_types();
+		$post_types = '' !== $type ? [ $type ] : Helpers::get_enabled_post_types();
 
-		if ( '' !== $type && empty( array_intersect( $post_types, $this->get_enabled_markdown_types() ) ) ) {
+		if ( '' !== $type && empty( array_intersect( $post_types, Helpers::get_enabled_post_types() ) ) ) {
 			return new \WP_REST_Response( [ 'error' => 'Markdown is not enabled for this post type.' ], 403 );
 		}
 
@@ -689,7 +680,7 @@ class MarkdownEndpoint {
 	 * @return array<int, \WP_Post>
 	 */
 	protected function get_homepage_posts( string $required_type, array $query_args, string $filter_name ): array {
-		if ( ! in_array( $required_type, $this->get_enabled_markdown_types(), true ) ) {
+		if ( ! in_array( $required_type, Helpers::get_enabled_post_types(), true ) ) {
 			return [];
 		}
 
