@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
+use AiSignalMarkdown\Inc\CrawlerInsights\CrawlerInsights;
 use AiSignalMarkdown\Inc\Helpers;
 /**
  * Class MarkdownEndpoint
@@ -29,6 +30,13 @@ class MarkdownEndpoint {
 	 * @var MarkdownConverter
 	 */
 	protected $converter;
+
+	/**
+	 * The crawler insights service instance.
+	 *
+	 * @var CrawlerInsights|null
+	 */
+	protected ?CrawlerInsights $crawler_insights = null;
 
 	/**
 	 * Constructor.
@@ -221,6 +229,9 @@ class MarkdownEndpoint {
 	 */
 	protected function serve_homepage_markdown() {
 		$markdown = '';
+		$context  = [
+			'request_surface' => 'home',
+		];
 
 		$front_page_id = (int) get_option( 'page_on_front' );
 
@@ -228,7 +239,9 @@ class MarkdownEndpoint {
 			$post         = get_post( $front_page_id );
 			$availability = MarkdownAvailability::get_markdown_availability( $post instanceof \WP_Post ? $post : null );
 			if ( ! empty( $availability['markdown_available'] ) ) {
-				$markdown = $this->get_converter()->convert_post_full( $post );
+				$markdown           = $this->get_converter()->convert_post_full( $post );
+				$context['post']    = $post;
+				$context['post_id'] = $post->ID;
 			}
 		}
 
@@ -236,17 +249,19 @@ class MarkdownEndpoint {
 			$markdown = $this->build_homepage_markdown();
 		}
 
-		$this->send_markdown_response( $markdown );
+		$this->send_markdown_response( $markdown, $context );
 	}
 
 	/**
 	 * Send a Markdown response with standard headers and exit.
 	 *
-	 * @param string $markdown The Markdown content to output.
+	 * @param string               $markdown The Markdown content to output.
+	 * @param array<string, mixed> $context Request context for crawler insights logging.
 	 *
 	 * @return void
 	 */
-	protected function send_markdown_response( $markdown ) {
+	protected function send_markdown_response( $markdown, array $context = [] ) {
+		$this->maybe_log_markdown_request( $context );
 		status_header( 200 );
 		foreach ( $this->build_markdown_response_headers() as $header_line ) {
 			header( $header_line );
@@ -420,14 +435,16 @@ class MarkdownEndpoint {
 		$parts     = explode( '/', $slug );
 		$last_slug = end( $parts );
 
-		$posts = get_posts(
-			MarkdownAvailability::add_eligibility_query_args(
-				[
-					'name'           => sanitize_title( $last_slug ),
-					'post_type'      => $post_types,
-					'post_status'    => 'publish',
-					'posts_per_page' => 10,
-				]
+		$posts = MarkdownAvailability::filter_available_posts(
+			get_posts(
+				MarkdownAvailability::add_eligibility_query_args(
+					[
+						'name'           => sanitize_title( $last_slug ),
+						'post_type'      => $post_types,
+						'post_status'    => 'publish',
+						'posts_per_page' => 10,
+					]
+				)
 			)
 		);
 
@@ -658,7 +675,14 @@ class MarkdownEndpoint {
 			return;
 		}
 
-		$this->send_markdown_response( $this->get_converter()->convert_post_full( $post ) );
+		$this->send_markdown_response(
+			$this->get_converter()->convert_post_full( $post ),
+			[
+				'request_surface' => $this->get_request_surface(),
+				'post'            => $post,
+				'post_id'         => $post->ID,
+			]
+		);
 	}
 
 	/**
@@ -689,19 +713,47 @@ class MarkdownEndpoint {
 			return [];
 		}
 
+		$query_args = $this->filter_homepage_query_args( $filter_name, $query_args );
+
+		return MarkdownAvailability::filter_available_posts(
+			get_posts(
+				MarkdownAvailability::add_eligibility_query_args(
+					is_array( $query_args ) ? $query_args : []
+				)
+			)
+		);
+	}
+
+	/**
+	 * Apply the known homepage query-args filters without dynamic hook names.
+	 *
+	 * @param string               $filter_name Filter name identifier.
+	 * @param array<string, mixed> $query_args Query args.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function filter_homepage_query_args( string $filter_name, array $query_args ): array {
 		/**
-		 * Filter homepage section query args.
+		 * Filter homepage key-pages query args.
 		 *
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		$query_args = apply_filters( $filter_name, $query_args, $this );
+		if ( 'aisignal_markdown_homepage_key_pages_args' === $filter_name ) {
+			return (array) apply_filters( 'aisignal_markdown_homepage_key_pages_args', $query_args, $this );
+		}
 
-		return get_posts(
-			MarkdownAvailability::add_eligibility_query_args(
-				is_array( $query_args ) ? $query_args : []
-			)
-		);
+		/**
+		 * Filter homepage recent-posts query args.
+		 *
+		 * @param array<string, mixed> $query_args Query args.
+		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
+		 */
+		if ( 'aisignal_markdown_homepage_recent_posts_args' === $filter_name ) {
+			return (array) apply_filters( 'aisignal_markdown_homepage_recent_posts_args', $query_args, $this );
+		}
+
+		return $query_args;
 	}
 
 	/**
@@ -734,6 +786,14 @@ class MarkdownEndpoint {
 			'md_url'   => get_permalink( $post ) . '?format=markdown',
 		];
 
+		$this->maybe_log_markdown_request(
+			[
+				'request_surface' => 'rest',
+				'post'            => $post,
+				'post_id'         => $post->ID,
+			]
+		);
+
 		return new \WP_REST_Response( $this->filter_rest_markdown_response( $response, $post, $request ) );
 	}
 
@@ -748,5 +808,52 @@ class MarkdownEndpoint {
 		}
 
 		return $this->converter;
+	}
+
+	/**
+	 * Lazily instantiate the crawler insights service.
+	 *
+	 * @return CrawlerInsights
+	 */
+	protected function get_crawler_insights_service(): CrawlerInsights {
+		if ( ! $this->crawler_insights instanceof CrawlerInsights ) {
+			$this->crawler_insights = new CrawlerInsights();
+		}
+
+		return $this->crawler_insights;
+	}
+
+	/**
+	 * Log a successful markdown request when crawler insights are enabled.
+	 *
+	 * @param array<string, mixed> $context Request context.
+	 *
+	 * @return void
+	 */
+	protected function maybe_log_markdown_request( array $context = [] ): void {
+		$this->get_crawler_insights_service()->log_request( $context );
+	}
+
+	/**
+	 * Resolve the current markdown request surface.
+	 *
+	 * @return string
+	 */
+	protected function get_request_surface(): string {
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) ) : '';
+
+		if ( (bool) get_query_var( 'aisignal_md' ) || preg_match( '/\.md(?:\/)?(?:\?|$)/', $request_uri ) ) {
+			return 'md';
+		}
+
+		if ( $this->is_query_parameter_markdown_request() ) {
+			return 'query';
+		}
+
+		if ( $this->wants_markdown_response() ) {
+			return 'accept';
+		}
+
+		return 'markdown';
 	}
 }

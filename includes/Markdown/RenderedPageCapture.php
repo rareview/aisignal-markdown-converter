@@ -191,6 +191,7 @@ class RenderedPageCapture {
 			if ( $enhance_with_core ) {
 				$this->run_before_include_template_actions( $template );
 				if ( function_exists( 'do_action' ) ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress template enhancement hook.
 					do_action( 'wp_template_enhancement_output_buffer_started' );
 				}
 			}
@@ -243,6 +244,7 @@ class RenderedPageCapture {
 		}
 
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress pre-template include hook.
 			do_action( 'wp_before_include_template', $template );
 		} finally {
 			if ( $core_buffer_callback_removed && function_exists( 'add_action' ) ) {

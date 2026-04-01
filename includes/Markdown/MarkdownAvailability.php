@@ -64,14 +64,15 @@ class MarkdownAvailability {
 				self::META_KEY_EXCLUDED,
 				[
 					'single'            => true,
-					'show_in_rest'      => false,
-					'type'              => 'string',
+					'show_in_rest'      => true,
+					'type'              => 'boolean',
+					'default'           => false,
 					'auth_callback'     => static function ( $allowed, $meta_key, $post_id ) {
 						unset( $allowed, $meta_key );
 						return current_user_can( 'edit_post', (int) $post_id );
 					},
 					'sanitize_callback' => static function ( $value ) {
-						return rest_sanitize_boolean( $value ) ? '1' : '0';
+						return rest_sanitize_boolean( $value );
 					},
 				]
 			);
@@ -161,7 +162,7 @@ class MarkdownAvailability {
 	 * @return bool
 	 */
 	public static function is_post_excluded_per_post( int $post_id ): bool {
-		return '1' === get_post_meta( $post_id, self::META_KEY_EXCLUDED, true );
+		return rest_sanitize_boolean( get_post_meta( $post_id, self::META_KEY_EXCLUDED, true ) );
 	}
 
 	/**
@@ -258,12 +259,6 @@ class MarkdownAvailability {
 	 * @return array<string, mixed>
 	 */
 	public static function add_eligibility_query_args( array $args ): array {
-		$excluded_ids = self::get_excluded_post_ids();
-		if ( ! empty( $excluded_ids ) ) {
-			$current_ids          = isset( $args['post__not_in'] ) && is_array( $args['post__not_in'] ) ? array_map( 'absint', $args['post__not_in'] ) : [];
-			$args['post__not_in'] = array_values( array_unique( array_merge( $current_ids, $excluded_ids ) ) );
-		}
-
 		$not_excluded_meta_query = [
 			'relation' => 'OR',
 			[
@@ -293,6 +288,25 @@ class MarkdownAvailability {
 	}
 
 	/**
+	 * Filter a post list down to markdown-available posts only.
+	 *
+	 * @param array<int, \WP_Post> $posts Posts to filter.
+	 *
+	 * @return array<int, \WP_Post>
+	 */
+	public static function filter_available_posts( array $posts ): array {
+		return array_values(
+			array_filter(
+				$posts,
+				static function ( $post ): bool {
+					$availability = self::get_markdown_availability( $post instanceof \WP_Post ? $post : null );
+					return ! empty( $availability['markdown_available'] );
+				}
+			)
+		);
+	}
+
+	/**
 	 * Persist the per-post markdown exclusion flag.
 	 *
 	 * @param int  $post_id Post ID.
@@ -302,7 +316,7 @@ class MarkdownAvailability {
 	 */
 	public static function save_post_exclusion( int $post_id, bool $exclude ): array {
 		if ( $exclude ) {
-			update_post_meta( $post_id, self::META_KEY_EXCLUDED, '1' );
+			update_post_meta( $post_id, self::META_KEY_EXCLUDED, true );
 		} else {
 			delete_post_meta( $post_id, self::META_KEY_EXCLUDED );
 		}

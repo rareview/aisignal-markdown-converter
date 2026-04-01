@@ -2,9 +2,9 @@
 Contributors: rareview
 Tags: markdown, headless, api, content
 Requires at least: 6.4
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: trunk
+Stable tag: 0.0.1-alpha
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,8 +21,9 @@ Features include:
 * REST endpoints for Markdown retrieval.
 * Rendered HTML capture, extraction, normalization, and Markdown conversion.
 * Optional YAML frontmatter for Markdown documents.
+* Optional crawler insights with request logging, bot detection, retention, and filtering.
 * Alternate Markdown discovery through a head link and `Link` response header.
-* A minimal settings screen for enabling frontmatter and choosing Markdown-enabled post types.
+* A minimal settings screen for configuring Markdown output and crawler insights.
 
 This plugin is currently in alpha and is best suited for evaluation and development use.
 
@@ -30,7 +31,7 @@ This plugin is currently in alpha and is best suited for evaluation and developm
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin through the WordPress Plugins screen.
-3. Go to `Settings > AI Signal Markdown` to choose enabled post types and frontmatter behavior.
+3. Go to `Settings > AI Signal Markdown` to choose enabled post types, frontmatter behavior, and crawler insights settings.
 
 == Frequently Asked Questions ==
 
@@ -44,6 +45,6 @@ No. Frontmatter is optional and disabled by default.
 
 == Changelog ==
 
-= trunk =
+= 0.0.1-alpha =
 
 * Initial public alpha.

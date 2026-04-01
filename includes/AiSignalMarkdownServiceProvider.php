@@ -23,6 +23,7 @@ class AiSignalMarkdownServiceProvider {
 	 */
 	public static array $services = [
 		Register::class,
+		CrawlerInsights\CrawlerInsights::class,
 		Markdown\MarkdownAvailability::class,
 		Markdown\MarkdownEndpoint::class,
 		Admin\AdminPage::class,
@@ -85,6 +86,8 @@ class AiSignalMarkdownServiceProvider {
 		$defaults = [
 			'aisignal_markdown_post_types'         => [ 'post', 'page' ],
 			'aisignal_markdown_enable_frontmatter' => false,
+			CrawlerInsights\CrawlerInsights::OPTION_ENABLED => false,
+			CrawlerInsights\CrawlerInsights::OPTION_RETENTION_DAYS => 30,
 			Markdown\MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => [],
 		];
 
@@ -96,6 +99,9 @@ class AiSignalMarkdownServiceProvider {
 
 		$endpoint = new Markdown\MarkdownEndpoint();
 		$endpoint->add_rewrite_rules();
+		$crawler_insights = new CrawlerInsights\CrawlerInsights();
+		$crawler_insights->maybe_install_table();
+		$crawler_insights->ensure_prune_schedule();
 		flush_rewrite_rules();
 	}
 
@@ -105,6 +111,7 @@ class AiSignalMarkdownServiceProvider {
 	 * @return void
 	 */
 	public static function deactivate(): void {
+		CrawlerInsights\CrawlerInsights::unschedule_prune_event();
 		flush_rewrite_rules();
 	}
 
