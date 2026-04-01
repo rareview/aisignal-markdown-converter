@@ -36,19 +36,11 @@ function aisignal_markdown_uninstall_delete_options(): void {
  * @return void
  */
 function aisignal_markdown_uninstall_delete_post_meta(): void {
-	global $wpdb;
-
-	if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'query' ) ) {
+	if ( ! function_exists( 'delete_metadata' ) ) {
 		return;
 	}
 
-	$wpdb->query(
-		$wpdb->prepare(
-			'DELETE FROM %i WHERE meta_key = %s',
-			$wpdb->postmeta,
-			'_aisignal_markdown_excluded'
-		)
-	);
+	delete_metadata( 'post', 0, '_aisignal_markdown_excluded', '', true );
 }
 
 /**
@@ -59,16 +51,25 @@ function aisignal_markdown_uninstall_delete_post_meta(): void {
 function aisignal_markdown_uninstall_drop_log_table(): void {
 	global $wpdb;
 
-	if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'query' ) ) {
+	if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
 		return;
 	}
 
-	$table_name = (string) $wpdb->prefix . 'aisignal_markdown_request_log';
+	if ( ! function_exists( 'maybe_drop_table' ) && defined( 'ABSPATH' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	}
 
-	$wpdb->query(
-		$wpdb->prepare(
-			'DROP TABLE IF EXISTS %i',
-			$table_name
+	if ( ! function_exists( 'maybe_drop_table' ) ) {
+		return;
+	}
+
+	$aisignal_markdown_table_name = (string) $wpdb->prefix . 'aisignal_markdown_request_log';
+
+	maybe_drop_table(
+		$aisignal_markdown_table_name,
+		sprintf(
+			'DROP TABLE IF EXISTS %s',
+			$aisignal_markdown_table_name
 		)
 	);
 }
@@ -97,15 +98,15 @@ function aisignal_markdown_uninstall_cleanup_current_site(): void {
 }
 
 if ( is_multisite() && function_exists( 'get_sites' ) && function_exists( 'switch_to_blog' ) && function_exists( 'restore_current_blog' ) ) {
-	$site_ids = get_sites(
+	$aisignal_markdown_site_ids = get_sites(
 		[
 			'fields' => 'ids',
 			'number' => 0,
 		]
 	);
 
-	foreach ( $site_ids as $site_id ) {
-		switch_to_blog( (int) $site_id );
+	foreach ( $aisignal_markdown_site_ids as $aisignal_markdown_site_id ) {
+		switch_to_blog( (int) $aisignal_markdown_site_id );
 		aisignal_markdown_uninstall_cleanup_current_site();
 		restore_current_blog();
 	}
