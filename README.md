@@ -2,22 +2,15 @@
 
 AI Signal Markdown is a lightweight WordPress plugin that exposes public content as Markdown through normal WordPress routes.
 
-It is intentionally focused on Markdown delivery. The plugin supports query-string and `.md` routes, REST access, alternate Markdown discovery signals, optional YAML frontmatter, and optional crawler insights. It does not try to be the broader AI Signal platform.
+The plugin supports query-string and `.md` routes, REST access, alternate Markdown discovery signals, optional YAML frontmatter, and optional crawler insights.
 
-## Scope
+## Overview
 
 - Public Markdown delivery for WordPress content
 - Rendered-first extraction with WordPress-friendly fallbacks
 - Optional YAML frontmatter
 - Optional crawler insights for successful Markdown bot requests
 - Lightweight WordPress admin settings
-
-Out of scope for this repository:
-
-- `llms.txt`
-- chat or citations
-- sitewide schema management
-- theme-specific extraction rules
 
 ## Quick Start
 
