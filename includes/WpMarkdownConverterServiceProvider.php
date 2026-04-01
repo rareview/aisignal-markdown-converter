@@ -71,7 +71,7 @@ class WpMarkdownConverterServiceProvider {
 		 *
 		 * @param array<int, string> $services Service class names.
 		 */
-		$services = apply_filters( 'wp_markdown_converter_services', $services );
+		$services = apply_filters( 'wpmdc_services', $services );
 		if ( ! is_array( $services ) ) {
 			return self::$services;
 		}

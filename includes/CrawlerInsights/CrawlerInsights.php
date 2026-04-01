@@ -175,7 +175,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed>  $context Request context.
 		 * @param CrawlerInsights       $service Service instance.
 		 */
-		$should_log = (bool) apply_filters( 'wp_markdown_converter_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
+		$should_log = (bool) apply_filters( 'wpmdc_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
 		if ( ! $should_log ) {
 			return false;
 		}
@@ -187,7 +187,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed> $context Request context.
 		 * @param CrawlerInsights      $service Service instance.
 		 */
-		$entry = apply_filters( 'wp_markdown_converter_crawler_log_entry', $entry, $context, $this );
+		$entry = apply_filters( 'wpmdc_crawler_log_entry', $entry, $context, $this );
 		if ( ! is_array( $entry ) ) {
 			return false;
 		}

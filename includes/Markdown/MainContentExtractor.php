@@ -129,7 +129,7 @@ class MainContentExtractor {
 	 * @return array
 	 */
 	protected function collect_candidates( \DOMXPath $xpath, \DOMElement $body_node, array $hint_bonus, ?\WP_Post $post = null ) {
-		$tags       = apply_filters( 'wp_markdown_converter_candidate_tags', [ 'main', 'article', 'section', 'div', 'aside' ], $post );
+		$tags       = apply_filters( 'wpmdc_candidate_tags', [ 'main', 'article', 'section', 'div', 'aside' ], $post );
 		$tag_query  = implode( ' or ', array_map( static fn( $tag ) => 'self::' . strtolower( (string) $tag ), $tags ) );
 		$query      = './/*[' . $tag_query . ']';
 		$node_list  = $xpath->query( $query, $body_node );
@@ -177,8 +177,7 @@ class MainContentExtractor {
 	 * @return \DOMElement|null
 	 */
 	protected function find_preferred_content_node( \DOMXPath $xpath, ?\WP_Post $post = null ) {
-		$selectors = apply_filters( 'wp_markdown_converter_main_content_selectors', $this->hint_selectors, $post );
-
+		$selectors = apply_filters( 'wpmdc_main_content_selectors', $this->hint_selectors, $post );
 		foreach ( $selectors as $selector ) {
 			$query = $this->selector_to_xpath( (string) $selector );
 			if ( empty( $query ) ) {
@@ -230,7 +229,7 @@ class MainContentExtractor {
 	 * @return array
 	 */
 	protected function build_hint_bonus_map( \DOMXPath $xpath, ?\WP_Post $post = null ) {
-		$selectors = apply_filters( 'wp_markdown_converter_main_content_selectors', $this->hint_selectors, $post );
+		$selectors = apply_filters( 'wpmdc_main_content_selectors', $this->hint_selectors, $post );
 		$bonus_map = [];
 
 		foreach ( $selectors as $rank => $selector ) {
@@ -266,7 +265,7 @@ class MainContentExtractor {
 	 */
 	protected function get_excluded_container_tokens( ?\WP_Post $post = null ) {
 		return apply_filters(
-			'wp_markdown_converter_excluded_container_tokens',
+			'wpmdc_excluded_container_tokens',
 			[
 				'nav',
 				'menu',
@@ -396,7 +395,7 @@ class MainContentExtractor {
 		$score -= $depth * 35;
 		$score -= $penalty;
 
-		return (int) apply_filters( 'wp_markdown_converter_candidate_score', $score, $node, $post );
+		return (int) apply_filters( 'wpmdc_candidate_score', $score, $node, $post );
 	}
 
 	/**

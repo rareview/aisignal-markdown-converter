@@ -58,7 +58,7 @@ class RenderedPageCapture {
 			 * @param string   $html Rendered HTML.
 			 * @param \WP_Post $post Post object.
 			 */
-			return (string) apply_filters( 'wp_markdown_converter_rendered_html', $html, $post );
+			return (string) apply_filters( 'wpmdc_rendered_html', $html, $post );
 		}
 
 		return '';
@@ -307,7 +307,7 @@ class RenderedPageCapture {
 		 * @param string   $template Template path.
 		 * @param \WP_Post $post     Post object.
 		 */
-		return (string) apply_filters( 'wp_markdown_converter_template', $template, $post );
+		return (string) apply_filters( 'wpmdc_template', $template, $post );
 	}
 
 	/**
@@ -431,7 +431,7 @@ class RenderedPageCapture {
 		 * @param string        $content Sanitized HTML fragment.
 		 * @param \WP_Post|null $post    Optional post object.
 		 */
-		return (string) apply_filters( 'wp_markdown_converter_filtered_content_fragment', $content, $post );
+		return (string) apply_filters( 'wpmdc_filtered_content_fragment', $content, $post );
 	}
 
 	/**
@@ -459,7 +459,7 @@ class RenderedPageCapture {
 		 *
 		 * @param array<int, string> $patterns Regex patterns.
 		 */
-		return apply_filters( 'wp_markdown_converter_invalid_template_patterns', $this->invalid_source_patterns );
+		return apply_filters( 'wpmdc_invalid_template_patterns', $this->invalid_source_patterns );
 	}
 
 	/**

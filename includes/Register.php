@@ -98,8 +98,7 @@ class Register {
 		 * @param string              $url     Markdown URL, or empty string when unavailable.
 		 * @param array<string,mixed> $context Discovery context.
 		 */
-		$url = (string) apply_filters( 'wp_markdown_converter_url', $url, $context );
-
+		$url = (string) apply_filters( 'wpmdc_url', $url, $context );
 		/**
 		 * Filter whether alternate Markdown discovery should be exposed for the current request.
 		 *
@@ -107,8 +106,7 @@ class Register {
 		 * @param string              $url     Markdown URL after filtering.
 		 * @param array<string,mixed> $context Discovery context.
 		 */
-		$enabled = (bool) apply_filters( 'wp_markdown_converter_discovery_enabled', '' !== $url, $url, $context );
-
+		$enabled = (bool) apply_filters( 'wpmdc_discovery_enabled', '' !== $url, $url, $context );
 		return $enabled ? $url : '';
 	}
 }

@@ -228,8 +228,7 @@ class MarkdownAvailability {
 		 * @param array<string, mixed> $state Availability state.
 		 * @param \WP_Post             $post  Post object.
 		 */
-		$state = apply_filters( 'wp_markdown_converter_availability', $state, $post );
-
+		$state = apply_filters( 'wpmdc_availability', $state, $post );
 		if ( empty( $state['availability_message'] ) ) {
 			$state['availability_message'] = self::get_availability_message( (string) ( $state['availability_reason'] ?? '' ) );
 		}

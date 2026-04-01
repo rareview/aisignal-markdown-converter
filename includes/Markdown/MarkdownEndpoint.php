@@ -291,8 +291,7 @@ class MarkdownEndpoint {
 		 * @param array<int, string> $headers Header lines.
 		 * @param MarkdownEndpoint   $endpoint Endpoint instance.
 		 */
-		$headers = apply_filters( 'wp_markdown_converter_response_headers', $headers, $this );
-
+		$headers = apply_filters( 'wpmdc_response_headers', $headers, $this );
 		return is_array( $headers ) ? array_values( $headers ) : $this->get_default_markdown_response_headers();
 	}
 
@@ -332,7 +331,7 @@ class MarkdownEndpoint {
 					'title'      => 'ASC',
 				],
 			],
-			'wp_markdown_converter_homepage_key_pages_args'
+			'wpmdc_homepage_key_pages_args'
 		);
 
 		if ( ! empty( $key_pages ) ) {
@@ -353,7 +352,7 @@ class MarkdownEndpoint {
 				'orderby'        => 'date',
 				'order'          => 'DESC',
 			],
-			'wp_markdown_converter_homepage_recent_posts_args'
+			'wpmdc_homepage_recent_posts_args'
 		);
 
 		if ( ! empty( $recent ) ) {
@@ -383,7 +382,7 @@ class MarkdownEndpoint {
 		 * @param string           $markdown Homepage markdown.
 		 * @param MarkdownEndpoint $endpoint Endpoint instance.
 		 */
-		return (string) apply_filters( 'wp_markdown_converter_homepage_output', $markdown, $this );
+		return (string) apply_filters( 'wpmdc_homepage_output', $markdown, $this );
 	}
 
 	/**
@@ -656,8 +655,7 @@ class MarkdownEndpoint {
 		 * @param \WP_Post             $post Post object.
 		 * @param mixed                $request REST request object.
 		 */
-		$filtered = apply_filters( 'wp_markdown_converter_rest_response', $response, $post, $request );
-
+		$filtered = apply_filters( 'wpmdc_rest_response', $response, $post, $request );
 		return is_array( $filtered ) ? $filtered : $response;
 	}
 
@@ -740,20 +738,18 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'wp_markdown_converter_homepage_key_pages_args' === $filter_name ) {
-			return (array) apply_filters( 'wp_markdown_converter_homepage_key_pages_args', $query_args, $this );
+		if ( 'wpmdc_homepage_key_pages_args' === $filter_name ) {
+			return (array) apply_filters( 'wpmdc_homepage_key_pages_args', $query_args, $this );
 		}
-
 		/**
 		 * Filter homepage recent-posts query args.
 		 *
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'wp_markdown_converter_homepage_recent_posts_args' === $filter_name ) {
-			return (array) apply_filters( 'wp_markdown_converter_homepage_recent_posts_args', $query_args, $this );
+		if ( 'wpmdc_homepage_recent_posts_args' === $filter_name ) {
+			return (array) apply_filters( 'wpmdc_homepage_recent_posts_args', $query_args, $this );
 		}
-
 		return $query_args;
 	}
 

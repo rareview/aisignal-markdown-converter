@@ -78,8 +78,8 @@ The `Crawler Insights` tab provides:
 
 Crawler insights can be customized with:
 
-- `wp_markdown_converter_crawler_patterns`
-- `wp_markdown_converter_crawler_should_log`
-- `wp_markdown_converter_crawler_log_entry`
+- `wpmdc_crawler_patterns`
+- `wpmdc_crawler_should_log`
+- `wpmdc_crawler_log_entry`
 
 See [Extensibility](./extensibility.md) for the hook details.

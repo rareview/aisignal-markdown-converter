@@ -168,8 +168,7 @@ class BotDetector {
 		 *
 		 * @param array<int, array<string, mixed>> $patterns Crawler pattern definitions.
 		 */
-		$patterns = apply_filters( 'wp_markdown_converter_crawler_patterns', $patterns );
-
+		$patterns = apply_filters( 'wpmdc_crawler_patterns', $patterns );
 		if ( ! is_array( $patterns ) ) {
 			return [];
 		}

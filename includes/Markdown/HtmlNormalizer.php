@@ -287,7 +287,7 @@ class HtmlNormalizer {
 	protected function remove_noise_elements( \DOMElement $root, ?\WP_Post $post = null ) {
 		$tokens  = $this->get_excluded_container_tokens( $post );
 		$phrases = apply_filters(
-			'wp_markdown_converter_remove_node_phrases',
+			'wpmdc_remove_node_phrases',
 			[
 				'author-box',
 			],
@@ -345,7 +345,7 @@ class HtmlNormalizer {
 	 */
 	protected function get_excluded_container_tokens( ?\WP_Post $post = null ) {
 		return apply_filters(
-			'wp_markdown_converter_excluded_container_tokens',
+			'wpmdc_excluded_container_tokens',
 			[
 				'nav',
 				'menu',

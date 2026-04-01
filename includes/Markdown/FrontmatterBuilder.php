@@ -43,7 +43,7 @@ class FrontmatterBuilder {
 		 * @param \WP_Post $subject       Post object.
 		 * @param string   $body_markdown Markdown body content.
 		 */
-		$data = apply_filters( 'wp_markdown_converter_frontmatter_data', $data, $subject, $body_markdown );
+		$data = apply_filters( 'wpmdc_frontmatter_data', $data, $subject, $body_markdown );
 		$yaml = $this->array_to_yaml( $data );
 
 		/**
@@ -53,8 +53,7 @@ class FrontmatterBuilder {
 		 * @param \WP_Post $subject Post object.
 		 * @param array    $data Frontmatter data.
 		 */
-		$yaml = apply_filters( 'wp_markdown_converter_frontmatter', $yaml, $subject, $data );
-
+		$yaml = apply_filters( 'wpmdc_frontmatter', $yaml, $subject, $data );
 		return "---\n{$yaml}---\n\n";
 	}
 
