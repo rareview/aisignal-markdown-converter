@@ -1,6 +1,6 @@
 === WP Markdown Converter ===
 Contributors: rareview
-Tags: markdown, rest-api, headless, yaml
+Tags: markdown, rest-api, headless, yaml, acf
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.0
@@ -8,7 +8,7 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Expose WordPress content as clean Markdown through `.md` URLs, query parameters, and REST endpoints.
+Expose WordPress content as clean Markdown, including ACF-backed content fallbacks, through `.md` URLs, query parameters, and REST endpoints.
 
 == Description ==
 
@@ -21,6 +21,7 @@ Features include:
 * `Accept: text/markdown` negotiation
 * REST endpoints for Markdown retrieval by post ID or slug path
 * rendered HTML capture, extraction, normalization, and Markdown conversion
+* ACF-aware fallback extraction for content stored outside the main editor
 * alternate Markdown discovery through a head link and `Link` response header
 * optional YAML frontmatter for Markdown documents
 * post type controls and exclusion controls for Markdown availability
@@ -45,6 +46,10 @@ You can access Markdown through `?format=markdown`, `.md` URLs, `Accept: text/ma
 = Which content gets Markdown output? =
 
 Markdown is available only for published content in the post types you enable in plugin settings. You can also exclude specific items globally by post ID or individually through the editor metabox.
+
+= Does it work with ACF? =
+
+Yes. The plugin includes an ACF-aware fallback extractor for eligible published content, which helps recover meaningful Markdown when important content is stored in custom fields instead of the main editor. It is not a field-by-field ACF integration layer, but it is designed to improve Markdown output on ACF-heavy sites.
 
 = Does the plugin add Markdown discovery signals? =
 

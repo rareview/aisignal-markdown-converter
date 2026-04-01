@@ -1,13 +1,14 @@
 # WP Markdown Converter
 
-WP Markdown Converter exposes WordPress content as clean Markdown through `.md` URLs, query parameters, and REST endpoints.
+WP Markdown Converter exposes WordPress content as clean Markdown through `.md` URLs, query parameters, and REST endpoints, with ACF-aware fallback extraction for content stored outside the main editor.
 
-The plugin supports query-string and `.md` routes, REST access, alternate Markdown discovery signals, optional YAML frontmatter, and optional crawler insights.
+The plugin supports query-string and `.md` routes, REST access, alternate Markdown discovery signals, ACF-aware fallback extraction, optional YAML frontmatter, and optional crawler insights.
 
 ## Overview
 
 - Public Markdown delivery for WordPress content
 - Rendered-first extraction with WordPress-friendly fallbacks
+- ACF-aware fallback extraction for custom-field-heavy content
 - Optional YAML frontmatter
 - Optional crawler insights for successful Markdown bot requests
 - Lightweight WordPress admin settings
@@ -58,6 +59,7 @@ The Markdown pipeline is intentionally small:
 - REST endpoints by post ID and slug path
 - Alternate Markdown discovery via `<link rel="alternate" type="text/markdown">`
 - Alternate Markdown discovery via `Link` response header
+- ACF-aware fallback extraction for content stored in custom fields
 - YAML frontmatter with featured image and public taxonomy names
 - Global and per-post Markdown exclusions
 - Bot-focused crawler insights with retention and filtering
