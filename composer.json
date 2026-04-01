@@ -18,7 +18,7 @@
     },
     "scripts": {
         "lint": "vendor/bin/phpcs --standard=.phpcs.xml; exit",
-        "format": "sh -c 'vendor/bin/phpcbf --standard=.phpcs.xml; code=$?; if [ \"$code\" -gt 1 ]; then exit \"$code\"; fi'",
+        "format": "sh -c 'vendor/bin/phpcbf --standard=.phpcs.xml; code=$?; if [ \"$code\" -gt 1 ]; then exit \"$code\"; fi'"
     },
     "autoload": {
         "psr-4": {

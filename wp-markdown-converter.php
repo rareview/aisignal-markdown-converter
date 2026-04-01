@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       WP Markdown Converter
- * Description:       Lightweight Markdown endpoints for WordPress content.
+ * Description:       Expose WordPress content as clean Markdown through .md URLs, query parameters, and REST.
  * Version:           1.0.0
  * Author:            Rareview®
  * Author URI:        https://rareview.com

@@ -1,6 +1,6 @@
 # WP Markdown Converter
 
-WP Markdown Converter is a lightweight WordPress plugin that exposes public content as Markdown through normal WordPress routes.
+WP Markdown Converter exposes WordPress content as clean Markdown through `.md` URLs, query parameters, and REST endpoints.
 
 The plugin supports query-string and `.md` routes, REST access, alternate Markdown discovery signals, optional YAML frontmatter, and optional crawler insights.
 

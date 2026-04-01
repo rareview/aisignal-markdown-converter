@@ -8,7 +8,7 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Expose public WordPress content as Markdown through query parameters, `.md` URLs, and REST endpoints.
+Expose WordPress content as clean Markdown through `.md` URLs, query parameters, and REST endpoints.
 
 == Description ==
 

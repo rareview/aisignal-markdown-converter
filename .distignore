@@ -2,6 +2,7 @@
 .github
 .gitignore
 .distignore
+.wordpress-org
 .phpcs.xml
 .idea
 .DS_Store

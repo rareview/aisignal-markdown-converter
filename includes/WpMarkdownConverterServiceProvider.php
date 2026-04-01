@@ -56,8 +56,6 @@ class WpMarkdownConverterServiceProvider {
 				new $service();
 			}
 		}
-
-		add_action( 'after_plugin_row_' . plugin_basename( WP_MARKDOWN_CONVERTER_PLUGIN_FILE ), [ $this, 'render_plugin_row_notice' ], 10, 3 );
 	}
 
 	/**
@@ -152,27 +150,5 @@ class WpMarkdownConverterServiceProvider {
 	public static function deactivate(): void {
 		CrawlerInsights\CrawlerInsights::unschedule_prune_event();
 		flush_rewrite_rules();
-	}
-
-	/**
-	 * Render a prerelease notice under the plugin row on the Plugins screen.
-	 *
-	 * @param string $plugin_file Plugin basename.
-	 * @param array  $plugin_data Plugin header data.
-	 * @param string $status      Current screen status.
-	 *
-	 * @return void
-	 */
-	public function render_plugin_row_notice( string $plugin_file, array $plugin_data, string $status ): void {
-		unset( $plugin_file, $plugin_data, $status );
-
-		$columns = function_exists( 'wp_is_auto_update_enabled_for_type' ) && wp_is_auto_update_enabled_for_type( 'plugin' ) ? 4 : 3;
-		$message = __( 'WP Markdown Converter is currently an alpha release intended for evaluation and development use. Expect occasional rough edges and verify behavior carefully before relying on it in production.', 'wp-markdown-converter' );
-
-		printf(
-			'<tr class="plugin-update-tr wp-markdown-converter-plugin-row-notice"><td colspan="%1$d" class="plugin-update colspanchange"><div class="notice inline notice-warning notice-alt"><p>%2$s</p></div></td></tr>',
-			esc_attr( (string) $columns ),
-			esc_html( $message )
-		);
 	}
 }
