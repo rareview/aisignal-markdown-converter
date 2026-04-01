@@ -2,7 +2,7 @@
 /**
  * Supplemental content extraction for thin rendered pages.
  *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown;
@@ -40,7 +40,7 @@ class SupplementalContentExtractor {
 	public function extract( \WP_Post $post ) {
 		$parts = [];
 
-		$filtered = $this->capture_filtered_content_html( $post );
+		$filtered = $this->capture->capture_filtered_content_fragment( $post );
 		if ( ! empty( trim( wp_strip_all_tags( $filtered ) ) ) ) {
 			$parts[] = $filtered;
 		}
@@ -53,17 +53,6 @@ class SupplementalContentExtractor {
 		$parts = array_values( array_filter( array_unique( $parts ) ) );
 
 		return implode( "\n\n<hr>\n\n", $parts );
-	}
-
-	/**
-	 * Capture filtered content HTML.
-	 *
-	 * @param \WP_Post $post Post object.
-	 *
-	 * @return string
-	 */
-	protected function capture_filtered_content_html( \WP_Post $post ) {
-		return $this->capture->capture_filtered_content_fragment( $post );
 	}
 
 	/**

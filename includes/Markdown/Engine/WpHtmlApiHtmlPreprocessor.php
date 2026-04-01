@@ -2,7 +2,7 @@
 /**
  * Preprocess HTML fragments before markdown rendering.
  *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown\Engine;

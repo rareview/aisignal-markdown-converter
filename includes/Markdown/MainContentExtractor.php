@@ -2,7 +2,7 @@
 /**
  * Extract the main content subtree from rendered HTML.
  *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown;

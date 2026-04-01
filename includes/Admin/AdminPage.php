@@ -242,7 +242,7 @@ class AdminPage {
 	 * @return void
 	 */
 	protected function render_general_tab(): void {
-		$enabled_types       = Helpers::get_enabled_post_types( 'markdown' );
+		$enabled_types       = Helpers::get_enabled_post_types();
 		$frontmatter_enabled = Helpers::is_frontmatter_enabled();
 		$excluded_post_ids   = MarkdownAvailability::get_excluded_post_ids();
 		$public_post_types   = $this->get_public_post_type_objects();

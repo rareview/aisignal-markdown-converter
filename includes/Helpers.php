@@ -19,15 +19,9 @@ class Helpers {
 	/**
 	 * Get enabled post types for Markdown output.
 	 *
-	 * @param string $feature Feature key.
-	 *
 	 * @return array<int, string>
 	 */
-	public static function get_enabled_post_types( string $feature = 'markdown' ): array {
-		if ( 'markdown' !== $feature ) {
-			return [];
-		}
-
+	public static function get_enabled_post_types(): array {
 		$allowed = self::get_public_post_types();
 		$option  = get_option( 'aisignal_markdown_post_types', null );
 
@@ -38,17 +32,6 @@ class Helpers {
 		$option = array_map( 'sanitize_key', $option );
 
 		return array_values( array_intersect( $option, $allowed ) );
-	}
-
-	/**
-	 * Check whether a feature is enabled.
-	 *
-	 * @param string $feature Feature key.
-	 *
-	 * @return bool
-	 */
-	public static function is_enabled( string $feature ): bool {
-		return 'markdown' === $feature;
 	}
 
 	/**

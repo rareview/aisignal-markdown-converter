@@ -2,7 +2,7 @@
 /**
  * Capture rendered singular-page HTML for markdown generation.
  *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown;

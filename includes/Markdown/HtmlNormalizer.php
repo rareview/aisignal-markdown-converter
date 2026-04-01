@@ -2,7 +2,7 @@
 /**
  * Normalize extracted HTML before markdown conversion.
  *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown;

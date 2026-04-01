@@ -129,7 +129,7 @@ class MarkdownAvailability {
 	 * @return bool
 	 */
 	public static function is_markdown_type_enabled( ?\WP_Post $post ): bool {
-		return $post instanceof \WP_Post && in_array( $post->post_type, Helpers::get_enabled_post_types( 'markdown' ), true );
+		return $post instanceof \WP_Post && in_array( $post->post_type, Helpers::get_enabled_post_types(), true );
 	}
 
 	/**
@@ -312,17 +312,13 @@ class MarkdownAvailability {
 	 * @param int  $post_id Post ID.
 	 * @param bool $exclude Whether to exclude the post.
 	 *
-	 * @return array<string, mixed>
+	 * @return void
 	 */
-	public static function save_post_exclusion( int $post_id, bool $exclude ): array {
+	public static function save_post_exclusion( int $post_id, bool $exclude ): void {
 		if ( $exclude ) {
 			update_post_meta( $post_id, self::META_KEY_EXCLUDED, true );
 		} else {
 			delete_post_meta( $post_id, self::META_KEY_EXCLUDED );
 		}
-
-		$post = get_post( $post_id );
-
-		return self::get_markdown_availability( $post instanceof \WP_Post ? $post : null );
 	}
 }

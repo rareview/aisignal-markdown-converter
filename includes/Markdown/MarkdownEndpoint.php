@@ -1,13 +1,11 @@
 <?php
 /**
- * Markdown Endpoint class.
+ * Markdown endpoint handling.
  *
  * Handles .md URL endpoints and ?format=markdown query parameter.
  * Provides clean Markdown versions of any post/page via URL rewriting.
  *
- * @author Rareview® <hello@rareview.com>
- *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown;
@@ -16,11 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
 use AiSignalMarkdown\Inc\CrawlerInsights\CrawlerInsights;
 use AiSignalMarkdown\Inc\Helpers;
+
 /**
- * Class MarkdownEndpoint
+ * Handle Markdown routes and responses.
  */
 class MarkdownEndpoint {
 
@@ -42,10 +40,6 @@ class MarkdownEndpoint {
 	 * Constructor.
 	 */
 	public function __construct() {
-		if ( ! Helpers::is_enabled( 'markdown' ) ) {
-			return;
-		}
-
 		add_action( 'init', [ $this, 'add_rewrite_rules' ] );
 		add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
 		add_action( 'template_redirect', [ $this, 'handle_markdown_request' ] );
@@ -468,7 +462,7 @@ class MarkdownEndpoint {
 	 * @return array
 	 */
 	protected function get_enabled_markdown_types() {
-		return Helpers::get_enabled_post_types( 'markdown' );
+		return Helpers::get_enabled_post_types();
 	}
 
 	/**

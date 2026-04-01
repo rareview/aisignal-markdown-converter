@@ -2,7 +2,7 @@
 /**
  * Rendered-first markdown conversion for WordPress content.
  *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown;

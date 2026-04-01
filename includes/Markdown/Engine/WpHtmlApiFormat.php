@@ -2,7 +2,7 @@
 /**
  * Render HTML into markdown using the WordPress HTML API.
  *
- * @package AI Signal
+ * @package AiSignalMarkdown
  */
 
 namespace AiSignalMarkdown\Inc\Markdown\Engine;
