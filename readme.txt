@@ -8,22 +8,23 @@ Stable tag: 0.0.1-alpha
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Expose WordPress content as Markdown through query parameters, `.md` URLs, and REST endpoints.
+Expose public WordPress content as Markdown through query parameters, `.md` URLs, and REST endpoints.
 
 == Description ==
 
-AI Signal Markdown is a lightweight WordPress plugin that exposes published content as Markdown.
+AI Signal Markdown is a lightweight WordPress plugin that exposes eligible published content as Markdown while staying close to normal WordPress routing and output behavior.
 
 Features include:
 
-* `?format=markdown` support for singular content and the homepage.
-* `.md` endpoint handling.
-* REST endpoints for Markdown retrieval.
-* Rendered HTML capture, extraction, normalization, and Markdown conversion.
-* Optional YAML frontmatter for Markdown documents.
-* Optional crawler insights with request logging, bot detection, retention, and filtering.
-* Alternate Markdown discovery through a head link and `Link` response header.
-* A minimal settings screen for configuring Markdown output and crawler insights.
+* `?format=markdown` support for singular content and the homepage
+* `.md` URL handling
+* `Accept: text/markdown` negotiation
+* REST endpoints for Markdown retrieval by post ID or slug path
+* rendered HTML capture, extraction, normalization, and Markdown conversion
+* alternate Markdown discovery through a head link and `Link` response header
+* optional YAML frontmatter for Markdown documents
+* post type controls and exclusion controls for Markdown availability
+* optional crawler insights with bot detection, request logging, retention, and filtering
 
 This plugin is currently in alpha and is best suited for evaluation and development use.
 
@@ -31,20 +32,45 @@ This plugin is currently in alpha and is best suited for evaluation and developm
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin through the WordPress Plugins screen.
-3. Go to `Settings > AI Signal Markdown` to choose enabled post types, frontmatter behavior, and crawler insights settings.
+3. Go to `Settings > AI Signal Markdown`.
+4. Choose which public post types should expose Markdown.
+5. Optionally enable YAML frontmatter and crawler insights.
 
 == Frequently Asked Questions ==
 
 = Which URLs are supported? =
 
-You can access Markdown through `?format=markdown`, `.md` URLs, and the provided REST endpoints.
+You can access Markdown through `?format=markdown`, `.md` URLs, `Accept: text/markdown`, and the provided REST endpoints.
+
+= Which content gets Markdown output? =
+
+Markdown is available only for published content in the post types you enable in plugin settings. You can also exclude specific items globally by post ID or individually through the editor metabox.
+
+= Does the plugin add Markdown discovery signals? =
+
+Yes. Eligible singular requests and the homepage expose alternate Markdown discovery through:
+
+* `<link rel="alternate" type="text/markdown" ...>`
+* `Link: <...>; rel="alternate"; type="text/markdown"`
 
 = Is YAML frontmatter required? =
 
 No. Frontmatter is optional and disabled by default.
 
+= What does YAML frontmatter include? =
+
+When enabled, frontmatter includes fields such as title, URL, post type, published and modified dates, schema type, language, word count, reading time, canonical URL, featured image, and public taxonomy names. It does not include author or publisher fields.
+
+= What does crawler insights log? =
+
+Crawler insights logs successful Markdown requests from detected bots when the feature is enabled. The request log shows timestamps, URLs, bot names, and request methods, and includes retention controls and filtering in the admin screen.
+
+== Privacy Policy ==
+
+Crawler insights stores request metadata for detected bot traffic to successful Markdown responses. It does not store IP addresses, cookies, request bodies, or raw user-agent strings.
+
 == Changelog ==
 
 = 0.0.1-alpha =
 
-* Initial public alpha.
+* Initial public alpha
