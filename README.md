@@ -9,6 +9,7 @@ The plugin supports query-string and `.md` routes, REST access, alternate Markdo
 - Public Markdown delivery for WordPress content
 - Rendered-first extraction with WordPress-friendly fallbacks
 - ACF-aware fallback extraction for custom-field-heavy content
+- Compatible with many builder-based pages when content is server-rendered
 - Optional YAML frontmatter
 - Optional crawler insights for successful Markdown bot requests
 - Lightweight WordPress admin settings
@@ -60,6 +61,7 @@ The Markdown pipeline is intentionally small:
 - Alternate Markdown discovery via `<link rel="alternate" type="text/markdown">`
 - Alternate Markdown discovery via `Link` response header
 - ACF-aware fallback extraction for content stored in custom fields
+- Compatible with many builder-based pages when content is present in rendered HTML
 - YAML frontmatter with featured image and public taxonomy names
 - Global and per-post Markdown exclusions
 - Bot-focused crawler insights with retention and filtering
@@ -73,11 +75,3 @@ The Markdown pipeline is intentionally small:
 - [Settings and frontmatter](./docs/settings-and-frontmatter.md)
 - [Extensibility](./docs/extensibility.md)
 - [Crawler insights](./docs/crawler-insights.md)
-- [Release and submission notes](./docs/release-and-submission.md)
-
-## Release Notes
-
-- `readme.txt` is the WordPress.org-facing document.
-- `README.md` and `docs/` are developer-facing docs.
-- Keep [wp-markdown-converter.php](./wp-markdown-converter.php), [readme.txt](./readme.txt), and [license.txt](./license.txt) aligned on version and license.
-- Runtime-only deployment scripts can exclude docs, tests, and other dev files without affecting plugin behavior.

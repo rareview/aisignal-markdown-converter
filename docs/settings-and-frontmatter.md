@@ -27,6 +27,16 @@ This controls which public post types can expose Markdown. The setting applies a
 
 This global exclusion list overrides enabled post types. Add one post ID per line or separate IDs with commas.
 
+## Compatibility Notes
+
+### ACF-backed content
+
+The plugin includes ACF-aware fallback extraction for content stored outside the main editor. This improves Markdown output on ACF-heavy sites, but it is not a field-by-field ACF integration layer.
+
+### Builder-based pages
+
+The plugin is designed to work with many builder-based pages when important content is present in rendered HTML or `the_content`. Highly dynamic or JavaScript-rendered sections may still be incomplete, so representative pages should be tested on each site.
+
 ## Per-post Exclusion
 
 Every public post type gets a `WP Markdown Converter` side metabox in the editor with:

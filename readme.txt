@@ -22,6 +22,7 @@ Features include:
 * REST endpoints for Markdown retrieval by post ID or slug path
 * rendered HTML capture, extraction, normalization, and Markdown conversion
 * ACF-aware fallback extraction for content stored outside the main editor
+* compatible with many builder-based pages when important content is server-rendered
 * alternate Markdown discovery through a head link and `Link` response header
 * optional YAML frontmatter for Markdown documents
 * post type controls and exclusion controls for Markdown availability
@@ -50,6 +51,10 @@ Markdown is available only for published content in the post types you enable in
 = Does it work with ACF? =
 
 Yes. The plugin includes an ACF-aware fallback extractor for eligible published content, which helps recover meaningful Markdown when important content is stored in custom fields instead of the main editor. It is not a field-by-field ACF integration layer, but it is designed to improve Markdown output on ACF-heavy sites.
+
+= Does it work with page builders like Elementor, Divi, or Beaver Builder? =
+
+Often yes. The plugin is designed to work with standard WordPress rendering, including many builder-based pages, when the important content is present in rendered HTML or `the_content`. Highly dynamic or JavaScript-rendered sections may be incomplete, so representative builder pages should still be tested on each site.
 
 = Does the plugin add Markdown discovery signals? =
 

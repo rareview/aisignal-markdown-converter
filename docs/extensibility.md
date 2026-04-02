@@ -112,7 +112,7 @@ Filter the fallback HTML fragment generated from `the_content`.
 
 ### `wpmdc_invalid_template_patterns`
 
-Filter the template path patterns that should be treated as invalid for rendered capture.
+Filter the invalid rendered-source patterns used to reject unresolved template or source artifacts.
 
 ### `wpmdc_starting_node_finder`
 

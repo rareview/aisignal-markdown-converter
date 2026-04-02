@@ -10,13 +10,6 @@ Use these docs when you need implementation-level details, extension points, or 
 - [Settings and frontmatter](./settings-and-frontmatter.md)
 - [Extensibility](./extensibility.md)
 - [Crawler insights](./crawler-insights.md)
-- [Release and submission](./release-and-submission.md)
-
-## Audience
-
-- Site builders configuring the plugin beyond the default setup
-- Developers integrating with the Markdown output
-- Maintainers preparing releases and submission packages
 
 ## What lives where
 
