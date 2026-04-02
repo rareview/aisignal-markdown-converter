@@ -2,10 +2,10 @@
 /**
  * Preprocess HTML fragments before markdown rendering.
  *
- * @package WpMarkdownConverter
+ * @package MarkdownConverter
  */
 
-namespace WpMarkdownConverter\Inc\Markdown\Engine;
+namespace MarkdownConverter\Inc\Markdown\Engine;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -277,7 +277,7 @@ class WpHtmlApiHtmlPreprocessor {
 	 * @return string
 	 */
 	private function store_raw_html_placeholder( \DOMElement $node ): string {
-		$placeholder = 'WPMARKDOWNCONVERTERRAWHTMLTABLE' . ( count( $this->raw_html_placeholders ) + 1 ) . 'TOKEN';
+		$placeholder = 'MARKDOWNCONVERTERRAWHTMLTABLE' . ( count( $this->raw_html_placeholders ) + 1 ) . 'TOKEN';
 		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM API property name.
 		$document = $node->ownerDocument;
 		$html     = $document instanceof \DOMDocument ? trim( $document->saveHTML( $node ) ) : '';

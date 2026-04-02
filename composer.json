@@ -1,6 +1,6 @@
 {
-    "name": "rareview/wp-markdown-converter",
-    "description": "WP Markdown Converter WordPress plugin.",
+    "name": "rareview/markdown-converter",
+    "description": "Markdown Converter WordPress plugin.",
     "version": "1.0.0",
     "require": {
         "php": ">=8.0"
@@ -22,7 +22,7 @@
     },
     "autoload": {
         "psr-4": {
-            "WpMarkdownConverter\\Inc\\": "includes/"
+            "MarkdownConverter\\Inc\\": "includes/"
         }
     },
     "config": {

@@ -2,10 +2,10 @@
 /**
  * Crawler insights service.
  *
- * @package WpMarkdownConverter
+ * @package MarkdownConverter
  */
 
-namespace WpMarkdownConverter\Inc\CrawlerInsights;
+namespace MarkdownConverter\Inc\CrawlerInsights;
 
 use DateInterval;
 use DateTimeImmutable;
@@ -20,11 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manage crawler insights lifecycle, logging, and reporting.
  */
 class CrawlerInsights {
-	public const OPTION_ENABLED        = 'wp_markdown_converter_enable_crawler_insights';
-	public const OPTION_RETENTION_DAYS = 'wp_markdown_converter_crawler_retention_days';
-	public const OPTION_SCHEMA_VERSION = 'wp_markdown_converter_crawler_log_schema_version';
+	public const OPTION_ENABLED        = 'markdown_converter_enable_crawler_insights';
+	public const OPTION_RETENTION_DAYS = 'markdown_converter_crawler_retention_days';
+	public const OPTION_SCHEMA_VERSION = 'markdown_converter_crawler_log_schema_version';
 	public const SCHEMA_VERSION        = '1';
-	public const CRON_HOOK             = 'wp_markdown_converter_prune_request_log';
+	public const CRON_HOOK             = 'markdown_converter_prune_request_log';
 
 	/**
 	 * Prevent duplicate hook registration.
@@ -146,7 +146,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed>  $context Request context.
 		 * @param CrawlerInsights       $service Service instance.
 		 */
-		$should_log = (bool) apply_filters( 'wpmdc_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
+		$should_log = (bool) apply_filters( 'markdown_converter_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
 		if ( ! $should_log ) {
 			return false;
 		}
@@ -158,7 +158,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed> $context Request context.
 		 * @param CrawlerInsights      $service Service instance.
 		 */
-		$entry = apply_filters( 'wpmdc_crawler_log_entry', $entry, $context, $this );
+		$entry = apply_filters( 'markdown_converter_crawler_log_entry', $entry, $context, $this );
 		if ( ! is_array( $entry ) ) {
 			return false;
 		}

@@ -2,12 +2,12 @@
 /**
  * Central markdown availability and exclusion checks.
  *
- * @package WpMarkdownConverter
+ * @package MarkdownConverter
  */
 
-namespace WpMarkdownConverter\Inc\Markdown;
+namespace MarkdownConverter\Inc\Markdown;
 
-use WpMarkdownConverter\Inc\Helpers;
+use MarkdownConverter\Inc\Helpers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -17,8 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Shared markdown availability service.
  */
 class MarkdownAvailability {
-	public const OPTION_EXCLUDED_POST_IDS = 'wp_markdown_converter_excluded_post_ids';
-	public const META_KEY_EXCLUDED        = '_wp_markdown_converter_excluded';
+	public const OPTION_EXCLUDED_POST_IDS = 'markdown_converter_excluded_post_ids';
+	public const META_KEY_EXCLUDED        = '_markdown_converter_excluded';
 
 	/**
 	 * Prevent duplicate hook registration.
@@ -215,7 +215,7 @@ class MarkdownAvailability {
 		 * @param array<string, mixed> $state Availability state.
 		 * @param \WP_Post             $post  Post object.
 		 */
-		$state = apply_filters( 'wpmdc_availability', $state, $post );
+		$state = apply_filters( 'markdown_converter_availability', $state, $post );
 		if ( empty( $state['availability_message'] ) ) {
 			$state['availability_message'] = self::get_availability_message( (string) ( $state['availability_reason'] ?? '' ) );
 		}

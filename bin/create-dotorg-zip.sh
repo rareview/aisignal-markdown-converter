@@ -5,10 +5,10 @@ set -eu
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)"
 REPO_DIR="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd -P)"
 DIST_DIR="${REPO_DIR}/dist"
-ZIP_PATH="${DIST_DIR}/wp-markdown-converter.zip"
+ZIP_PATH="${DIST_DIR}/markdown-converter.zip"
 DISTIGNORE_PATH="${REPO_DIR}/.distignore"
 TEMP_DIR="$(mktemp -d)"
-STAGE_DIR="${TEMP_DIR}/wp-markdown-converter"
+STAGE_DIR="${TEMP_DIR}/markdown-converter"
 
 cleanup() {
 	rm -rf "${TEMP_DIR}"
@@ -16,7 +16,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-if [ ! -f "${REPO_DIR}/wp-markdown-converter.php" ]; then
+if [ ! -f "${REPO_DIR}/markdown-converter.php" ]; then
 	echo "Main plugin file not found in ${REPO_DIR}" >&2
 	exit 1
 fi
@@ -35,7 +35,7 @@ rsync -a --delete --delete-excluded \
 
 (
 	cd "${TEMP_DIR}"
-	zip -rq "${ZIP_PATH}" "wp-markdown-converter"
+	zip -rq "${ZIP_PATH}" "markdown-converter"
 )
 
 echo "Created ${ZIP_PATH}"

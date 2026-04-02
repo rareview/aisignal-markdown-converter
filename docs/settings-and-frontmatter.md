@@ -5,7 +5,7 @@
 The plugin adds a settings screen at:
 
 ```text
-Settings > WP Markdown Converter
+Settings > Markdown Converter
 ```
 
 It has two tabs:
@@ -39,7 +39,7 @@ The plugin is designed to work with many builder-based pages when important cont
 
 ## Per-post Exclusion
 
-Every public post type gets a `WP Markdown Converter` side metabox in the editor with:
+Every public post type gets a `Markdown Converter` side metabox in the editor with:
 
 - `Exclude from Markdown output`
 

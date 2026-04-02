@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<ruleset name="WPMarkdownConverter Default" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<ruleset name="MarkdownConverter Default" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
-	<description>WP Markdown Converter PHPCS configuration</description>
+	<description>Markdown Converter PHPCS configuration</description>
 
 	<arg name="colors" />
 	<arg value="sp" />
@@ -27,7 +27,7 @@
 	<rule ref="WordPress-Docs" />
 	<rule ref="PHPCompatibilityWP" />
 
-	<file>wp-markdown-converter.php</file>
+	<file>markdown-converter.php</file>
 	<file>includes</file>
 
 	<exclude-pattern>*/node_modules/*</exclude-pattern>

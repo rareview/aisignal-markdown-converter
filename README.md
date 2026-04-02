@@ -1,6 +1,6 @@
-# WP Markdown Converter
+# Markdown Converter
 
-WP Markdown Converter exposes WordPress content as clean Markdown through `.md` URLs, query parameters, and REST endpoints, with ACF-aware fallback extraction for content stored outside the main editor.
+Markdown Converter exposes WordPress content as clean Markdown through `.md` URLs, query parameters, and REST endpoints, with ACF-aware fallback extraction for content stored outside the main editor.
 
 The plugin supports query-string and `.md` routes, REST access, alternate Markdown discovery signals, ACF-aware fallback extraction, optional YAML frontmatter, and optional crawler insights.
 
@@ -16,9 +16,9 @@ The plugin supports query-string and `.md` routes, REST access, alternate Markdo
 
 ## Quick Start
 
-1. Place the plugin in `wp-content/plugins/wp-markdown-converter`.
+1. Place the plugin in `wp-content/plugins/markdown-converter`.
 2. Activate it in WordPress.
-3. Open `Settings > WP Markdown Converter`.
+3. Open `Settings > Markdown Converter`.
 4. Choose which public post types should expose Markdown.
 5. Optionally enable YAML frontmatter and crawler insights.
 
@@ -35,7 +35,7 @@ Check a few real routes after activation:
 ```bash
 curl -i https://example.com/about/?format=markdown
 curl -i https://example.com/about.md
-curl -i https://example.com/wp-json/wp-markdown-converter/v1/markdown?slug=about
+curl -i https://example.com/wp-json/markdown-converter/v1/markdown?slug=about
 curl -i -H 'Accept: text/markdown' https://example.com/about/
 ```
 

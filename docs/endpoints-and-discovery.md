@@ -2,7 +2,7 @@
 
 ## Supported Markdown Surfaces
 
-WP Markdown Converter exposes content through four surfaces:
+Markdown Converter exposes content through four surfaces:
 
 ### Query-string route
 
@@ -35,15 +35,15 @@ Markdown responses negotiated this way add `Vary: Accept`.
 By ID:
 
 ```text
-/wp-json/wp-markdown-converter/v1/markdown/{id}
+/wp-json/markdown-converter/v1/markdown/{id}
 ```
 
 By slug path:
 
 ```text
-/wp-json/wp-markdown-converter/v1/markdown?slug=about
-/wp-json/wp-markdown-converter/v1/markdown?slug=leadership/jane-doe
-/wp-json/wp-markdown-converter/v1/markdown?slug=about&type=page
+/wp-json/markdown-converter/v1/markdown?slug=about
+/wp-json/markdown-converter/v1/markdown?slug=leadership/jane-doe
+/wp-json/markdown-converter/v1/markdown?slug=about&type=page
 ```
 
 The slug route accepts nested paths. The optional `type` parameter limits resolution to a single post type.

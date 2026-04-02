@@ -5,23 +5,23 @@
  * Handles .md URL endpoints and ?format=markdown query parameter.
  * Provides clean Markdown versions of any post/page via URL rewriting.
  *
- * @package WpMarkdownConverter
+ * @package MarkdownConverter
  */
 
-namespace WpMarkdownConverter\Inc\Markdown;
+namespace MarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WpMarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
-use WpMarkdownConverter\Inc\Helpers;
+use MarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
+use MarkdownConverter\Inc\Helpers;
 
 /**
  * Handle Markdown routes and responses.
  */
 class MarkdownEndpoint {
-	private const QUERY_VAR_MD = 'wp_markdown_converter_md';
+	private const QUERY_VAR_MD = 'markdown_converter_md';
 
 	/**
 	 * The Markdown converter instance.
@@ -272,7 +272,7 @@ class MarkdownEndpoint {
 		 * @param array<int, string> $headers Header lines.
 		 * @param MarkdownEndpoint   $endpoint Endpoint instance.
 		 */
-		$headers = apply_filters( 'wpmdc_response_headers', $headers, $this );
+		$headers = apply_filters( 'markdown_converter_response_headers', $headers, $this );
 		return is_array( $headers ) ? array_values( $headers ) : $this->get_default_markdown_response_headers();
 	}
 
@@ -312,7 +312,7 @@ class MarkdownEndpoint {
 					'title'      => 'ASC',
 				],
 			],
-			'wpmdc_homepage_key_pages_args'
+			'markdown_converter_homepage_key_pages_args'
 		);
 
 		if ( ! empty( $key_pages ) ) {
@@ -333,7 +333,7 @@ class MarkdownEndpoint {
 				'orderby'        => 'date',
 				'order'          => 'DESC',
 			],
-			'wpmdc_homepage_recent_posts_args'
+			'markdown_converter_homepage_recent_posts_args'
 		);
 
 		if ( ! empty( $recent ) ) {
@@ -363,7 +363,7 @@ class MarkdownEndpoint {
 		 * @param string           $markdown Homepage markdown.
 		 * @param MarkdownEndpoint $endpoint Endpoint instance.
 		 */
-		return (string) apply_filters( 'wpmdc_homepage_output', $markdown, $this );
+		return (string) apply_filters( 'markdown_converter_homepage_output', $markdown, $this );
 	}
 
 	/**
@@ -478,7 +478,7 @@ class MarkdownEndpoint {
 		$url = get_permalink( $post );
 
 		if ( function_exists( 'wp_safe_redirect' ) ) {
-			wp_safe_redirect( $url, 302, 'WP Markdown Converter' );
+			wp_safe_redirect( $url, 302, 'Markdown Converter' );
 			exit;
 		}
 
@@ -515,7 +515,7 @@ class MarkdownEndpoint {
 		}
 
 		if ( function_exists( 'wp_die' ) ) {
-			wp_die( esc_html__( 'Not Found', 'wp-markdown-converter' ), '', [ 'response' => 404 ] );
+			wp_die( esc_html__( 'Not Found', 'markdown-converter' ), '', [ 'response' => 404 ] );
 		}
 
 		exit;
@@ -539,7 +539,7 @@ class MarkdownEndpoint {
 	 */
 	public function register_rest_routes() {
 		register_rest_route(
-			'wp-markdown-converter/v1',
+			'markdown-converter/v1',
 			'/markdown/(?P<id>\d+)',
 			[
 				'methods'             => 'GET',
@@ -556,7 +556,7 @@ class MarkdownEndpoint {
 		);
 
 		register_rest_route(
-			'wp-markdown-converter/v1',
+			'markdown-converter/v1',
 			'/markdown',
 			[
 				'methods'             => 'GET',
@@ -627,7 +627,7 @@ class MarkdownEndpoint {
 		 * @param \WP_Post             $post Post object.
 		 * @param mixed                $request REST request object.
 		 */
-		$filtered = apply_filters( 'wpmdc_rest_response', $response, $post, $request );
+		$filtered = apply_filters( 'markdown_converter_rest_response', $response, $post, $request );
 		return is_array( $filtered ) ? $filtered : $response;
 	}
 
@@ -665,7 +665,7 @@ class MarkdownEndpoint {
 		return [
 			'Content-Type: ' . Helpers::markdown_content_type(),
 			'X-Content-Type-Options: nosniff',
-			'X-WP-Markdown-Converter: ' . WP_MARKDOWN_CONVERTER_VERSION,
+			'X-WP-Markdown-Converter: ' . MARKDOWN_CONVERTER_VERSION,
 			'Cache-Control: public, max-age=3600',
 		];
 	}
@@ -710,8 +710,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'wpmdc_homepage_key_pages_args' === $filter_name ) {
-			return (array) apply_filters( 'wpmdc_homepage_key_pages_args', $query_args, $this );
+		if ( 'markdown_converter_homepage_key_pages_args' === $filter_name ) {
+			return (array) apply_filters( 'markdown_converter_homepage_key_pages_args', $query_args, $this );
 		}
 		/**
 		 * Filter homepage recent-posts query args.
@@ -719,8 +719,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'wpmdc_homepage_recent_posts_args' === $filter_name ) {
-			return (array) apply_filters( 'wpmdc_homepage_recent_posts_args', $query_args, $this );
+		if ( 'markdown_converter_homepage_recent_posts_args' === $filter_name ) {
+			return (array) apply_filters( 'markdown_converter_homepage_recent_posts_args', $query_args, $this );
 		}
 		return $query_args;
 	}

@@ -1,4 +1,4 @@
-# WP Markdown Converter Docs
+# Markdown Converter Docs
 
 This documentation set supplements the WordPress.org-facing [readme.txt](../readme.txt).
 

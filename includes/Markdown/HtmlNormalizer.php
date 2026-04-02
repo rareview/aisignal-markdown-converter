@@ -2,10 +2,10 @@
 /**
  * Normalize extracted HTML before markdown conversion.
  *
- * @package WpMarkdownConverter
+ * @package MarkdownConverter
  */
 
-namespace WpMarkdownConverter\Inc\Markdown;
+namespace MarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -42,7 +42,7 @@ class HtmlNormalizer {
 			return $html;
 		}
 
-		$root = $dom->getElementById( 'wp-markdown-converter-root' );
+		$root = $dom->getElementById( 'markdown-converter-root' );
 		if ( ! $root instanceof \DOMElement ) {
 			return $html;
 		}
@@ -72,7 +72,7 @@ class HtmlNormalizer {
 
 		$dom             = new \DOMDocument( '1.0', 'UTF-8' );
 		$libxml_previous = libxml_use_internal_errors( true );
-		$wrapped         = '<!DOCTYPE html><html><body><div id="wp-markdown-converter-root">' . $html . '</div></body></html>';
+		$wrapped         = '<!DOCTYPE html><html><body><div id="markdown-converter-root">' . $html . '</div></body></html>';
 		$loaded          = $dom->loadHTML( '<?xml encoding="UTF-8">' . $wrapped );
 		libxml_clear_errors();
 		libxml_use_internal_errors( $libxml_previous );
@@ -287,7 +287,7 @@ class HtmlNormalizer {
 	protected function remove_noise_elements( \DOMElement $root, ?\WP_Post $post = null ) {
 		$tokens  = $this->get_excluded_container_tokens( $post );
 		$phrases = apply_filters(
-			'wpmdc_remove_node_phrases',
+			'markdown_converter_remove_node_phrases',
 			[
 				'author-box',
 			],
@@ -345,7 +345,7 @@ class HtmlNormalizer {
 	 */
 	protected function get_excluded_container_tokens( ?\WP_Post $post = null ) {
 		return apply_filters(
-			'wpmdc_excluded_container_tokens',
+			'markdown_converter_excluded_container_tokens',
 			[
 				'nav',
 				'menu',

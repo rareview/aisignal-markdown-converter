@@ -1,11 +1,11 @@
 <?php
 /**
- * WP Markdown Converter service provider.
+ * Markdown Converter service provider.
  *
- * @package WpMarkdownConverter
+ * @package MarkdownConverter
  */
 
-namespace WpMarkdownConverter\Inc;
+namespace MarkdownConverter\Inc;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin service provider.
  */
-class WpMarkdownConverterServiceProvider {
+class MarkdownConverterServiceProvider {
 	/**
 	 * The plugin services that should be bootstrapped.
 	 *
@@ -50,11 +50,11 @@ class WpMarkdownConverterServiceProvider {
 		$services = self::$services;
 
 		/**
-		 * Filter the list of WP Markdown Converter services that should be bootstrapped.
+		 * Filter the list of Markdown Converter services that should be bootstrapped.
 		 *
 		 * @param array<int, string> $services Service class names.
 		 */
-		$services = apply_filters( 'wpmdc_services', $services );
+		$services = apply_filters( 'markdown_converter_services', $services );
 		if ( ! is_array( $services ) ) {
 			return self::$services;
 		}
@@ -81,8 +81,8 @@ class WpMarkdownConverterServiceProvider {
 	 */
 	public static function activate(): void {
 		$defaults = [
-			'wp_markdown_converter_post_types'         => [ 'post', 'page' ],
-			'wp_markdown_converter_enable_frontmatter' => false,
+			'markdown_converter_post_types'         => [ 'post', 'page' ],
+			'markdown_converter_enable_frontmatter' => false,
 			CrawlerInsights\CrawlerInsights::OPTION_ENABLED => false,
 			CrawlerInsights\CrawlerInsights::OPTION_RETENTION_DAYS => 30,
 			Markdown\MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => [],

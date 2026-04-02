@@ -2,10 +2,10 @@
 /**
  * Helpers class.
  *
- * @package WpMarkdownConverter
+ * @package MarkdownConverter
  */
 
-namespace WpMarkdownConverter\Inc;
+namespace MarkdownConverter\Inc;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,7 +23,7 @@ class Helpers {
 	 */
 	public static function get_enabled_post_types(): array {
 		$allowed = self::get_public_post_types();
-		$option  = get_option( 'wp_markdown_converter_post_types', null );
+		$option  = get_option( 'markdown_converter_post_types', null );
 
 		if ( ! is_array( $option ) ) {
 			$option = [ 'post', 'page' ];
@@ -40,7 +40,7 @@ class Helpers {
 	 * @return bool
 	 */
 	public static function is_frontmatter_enabled(): bool {
-		$enabled = get_option( 'wp_markdown_converter_enable_frontmatter', null );
+		$enabled = get_option( 'markdown_converter_enable_frontmatter', null );
 
 		return (bool) $enabled;
 	}
