@@ -1,5 +1,5 @@
 === WP Markdown Converter ===
-Contributors: rareview
+Contributors: rareview, pratikbarvaliya
 Tags: markdown, rest-api, headless, yaml, acf
 Requires at least: 6.5
 Tested up to: 6.9
