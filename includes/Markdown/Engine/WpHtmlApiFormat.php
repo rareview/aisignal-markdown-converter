@@ -2,10 +2,10 @@
 /**
  * Render HTML into markdown using the WordPress HTML API.
  *
- * @package MarkdownConverter
+ * @package WebPageContentToMarkdownConverter
  */
 
-namespace MarkdownConverter\Inc\Markdown\Engine;
+namespace WebPageContentToMarkdownConverter\Inc\Markdown\Engine;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

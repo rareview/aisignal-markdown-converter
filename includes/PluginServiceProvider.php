@@ -1,11 +1,11 @@
 <?php
 /**
- * Markdown Converter service provider.
+ * Web Page Content To Markdown Converter service provider.
  *
- * @package MarkdownConverter
+ * @package WebPageContentToMarkdownConverter
  */
 
-namespace MarkdownConverter\Inc;
+namespace WebPageContentToMarkdownConverter\Inc;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin service provider.
  */
-class MarkdownConverterServiceProvider {
+class PluginServiceProvider {
 	/**
 	 * The plugin services that should be bootstrapped.
 	 *
@@ -50,11 +50,11 @@ class MarkdownConverterServiceProvider {
 		$services = self::$services;
 
 		/**
-		 * Filter the list of Markdown Converter services that should be bootstrapped.
+		 * Filter the list of Web Page Content To Markdown Converter services that should be bootstrapped.
 		 *
 		 * @param array<int, string> $services Service class names.
 		 */
-		$services = apply_filters( 'markdown_converter_services', $services );
+		$services = apply_filters( 'web_page_content_to_markdown_converter_services', $services );
 		if ( ! is_array( $services ) ) {
 			return self::$services;
 		}
@@ -81,8 +81,8 @@ class MarkdownConverterServiceProvider {
 	 */
 	public static function activate(): void {
 		$defaults = [
-			'markdown_converter_post_types'         => [ 'post', 'page' ],
-			'markdown_converter_enable_frontmatter' => false,
+			'web_page_content_to_markdown_converter_post_types'         => [ 'post', 'page' ],
+			'web_page_content_to_markdown_converter_enable_frontmatter' => false,
 			CrawlerInsights\CrawlerInsights::OPTION_ENABLED => false,
 			CrawlerInsights\CrawlerInsights::OPTION_RETENTION_DAYS => 30,
 			Markdown\MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => [],

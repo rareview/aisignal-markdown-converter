@@ -5,28 +5,29 @@
  * Handles .md URL endpoints and ?format=markdown query parameter.
  * Provides clean Markdown versions of any post/page via URL rewriting.
  *
- * @package MarkdownConverter
+ * @package WebPageContentToMarkdownConverter
  */
 
-namespace MarkdownConverter\Inc\Markdown;
+namespace WebPageContentToMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use MarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
-use MarkdownConverter\Inc\Helpers;
+use WebPageContentToMarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
+use WebPageContentToMarkdownConverter\Inc\Helpers;
 
 /**
  * Handle Markdown routes and responses.
  */
 class MarkdownEndpoint {
-	private const QUERY_VAR_MD = 'markdown_converter_md';
+
+	private const QUERY_VAR_MD = 'web_page_content_to_markdown_converter_md';
 
 	/**
 	 * The Markdown converter instance.
 	 *
-	 * @var MarkdownConverter
+	 * @var ContentMarkdownConverter
 	 */
 	protected $converter;
 
@@ -198,7 +199,108 @@ class MarkdownEndpoint {
 			return false;
 		}
 
-		return false !== stripos( $accept, 'text/markdown' );
+		$markdown_quality = $this->get_accept_media_quality( $accept, 'text', 'markdown' );
+		if ( $markdown_quality <= 0.0 ) {
+			return false;
+		}
+
+		$html_quality = max(
+			$this->get_accept_media_quality( $accept, 'text', 'html' ),
+			$this->get_accept_media_quality( $accept, 'application', 'xhtml+xml' )
+		);
+
+		// Only negotiate markdown when it is strictly preferred over HTML.
+		return $markdown_quality > $html_quality;
+	}
+
+	/**
+	 * Resolve the negotiated q-value for a media type from an Accept header.
+	 *
+	 * @param string $accept Accept header value.
+	 * @param string $target_type Target media type.
+	 * @param string $target_subtype Target media subtype.
+	 *
+	 * @return float
+	 */
+	protected function get_accept_media_quality( string $accept, string $target_type, string $target_subtype ): float {
+		$best_quality     = 0.0;
+		$best_specificity = -1;
+		$ranges           = explode( ',', strtolower( $accept ) );
+
+		foreach ( $ranges as $range ) {
+			$range = trim( $range );
+			if ( '' === $range ) {
+				continue;
+			}
+
+			$parts      = array_map( 'trim', explode( ';', $range ) );
+			$media_type = array_shift( $parts );
+
+			if ( ! is_string( $media_type ) || false === strpos( $media_type, '/' ) ) {
+				continue;
+			}
+
+			[$type, $subtype] = array_map( 'trim', explode( '/', $media_type, 2 ) );
+
+			if ( '' === $type || '' === $subtype ) {
+				continue;
+			}
+
+			$specificity = $this->get_accept_match_specificity( $type, $subtype, $target_type, $target_subtype );
+			if ( $specificity < 0 ) {
+				continue;
+			}
+
+			$quality = 1.0;
+			foreach ( $parts as $param ) {
+				if ( 0 !== strpos( $param, 'q=' ) ) {
+					continue;
+				}
+
+				$quality = (float) substr( $param, 2 );
+				break;
+			}
+
+			$quality = max( 0.0, min( 1.0, $quality ) );
+
+			if ( $specificity > $best_specificity ) {
+				$best_specificity = $specificity;
+				$best_quality     = $quality;
+				continue;
+			}
+
+			if ( $specificity === $best_specificity && $quality > $best_quality ) {
+				$best_quality = $quality;
+			}
+		}
+
+		return $best_quality;
+	}
+
+	/**
+	 * Determine media-range specificity for a target media type.
+	 *
+	 * @param string $type Media type from a range.
+	 * @param string $subtype Media subtype from a range.
+	 * @param string $target_type Target type.
+	 * @param string $target_subtype Target subtype.
+	 *
+	 * @return int Specificity score, or -1 when no match.
+	 */
+	protected function get_accept_match_specificity( string $type, string $subtype, string $target_type, string $target_subtype ): int {
+		if ( '*' === $type && '*' === $subtype ) {
+			return 0;
+		}
+
+		if ( $target_type === $type && '*' === $subtype ) {
+			return 1;
+		}
+
+		if ( $target_type === $type && $target_subtype === $subtype ) {
+			return 2;
+		}
+
+		return -1;
 	}
 
 	/**
@@ -272,7 +374,7 @@ class MarkdownEndpoint {
 		 * @param array<int, string> $headers Header lines.
 		 * @param MarkdownEndpoint   $endpoint Endpoint instance.
 		 */
-		$headers = apply_filters( 'markdown_converter_response_headers', $headers, $this );
+		$headers = apply_filters( 'web_page_content_to_markdown_converter_response_headers', $headers, $this );
 		return is_array( $headers ) ? array_values( $headers ) : $this->get_default_markdown_response_headers();
 	}
 
@@ -312,7 +414,7 @@ class MarkdownEndpoint {
 					'title'      => 'ASC',
 				],
 			],
-			'markdown_converter_homepage_key_pages_args'
+			'web_page_content_to_markdown_converter_homepage_key_pages_args'
 		);
 
 		if ( ! empty( $key_pages ) ) {
@@ -333,7 +435,7 @@ class MarkdownEndpoint {
 				'orderby'        => 'date',
 				'order'          => 'DESC',
 			],
-			'markdown_converter_homepage_recent_posts_args'
+			'web_page_content_to_markdown_converter_homepage_recent_posts_args'
 		);
 
 		if ( ! empty( $recent ) ) {
@@ -363,7 +465,7 @@ class MarkdownEndpoint {
 		 * @param string           $markdown Homepage markdown.
 		 * @param MarkdownEndpoint $endpoint Endpoint instance.
 		 */
-		return (string) apply_filters( 'markdown_converter_homepage_output', $markdown, $this );
+		return (string) apply_filters( 'web_page_content_to_markdown_converter_homepage_output', $markdown, $this );
 	}
 
 	/**
@@ -478,7 +580,7 @@ class MarkdownEndpoint {
 		$url = get_permalink( $post );
 
 		if ( function_exists( 'wp_safe_redirect' ) ) {
-			wp_safe_redirect( $url, 302, 'Markdown Converter' );
+			wp_safe_redirect( $url, 302, 'Web Page Content To Markdown Converter' );
 			exit;
 		}
 
@@ -515,7 +617,7 @@ class MarkdownEndpoint {
 		}
 
 		if ( function_exists( 'wp_die' ) ) {
-			wp_die( esc_html__( 'Not Found', 'markdown-converter' ), '', [ 'response' => 404 ] );
+			wp_die( esc_html__( 'Not Found', 'web-page-content-to-markdown-converter' ), '', [ 'response' => 404 ] );
 		}
 
 		exit;
@@ -538,8 +640,9 @@ class MarkdownEndpoint {
 	 * @return void
 	 */
 	public function register_rest_routes() {
+		// These routes intentionally expose only already-public, markdown-eligible content.
 		register_rest_route(
-			'markdown-converter/v1',
+			'web-page-content-to-markdown-converter/v1',
 			'/markdown/(?P<id>\d+)',
 			[
 				'methods'             => 'GET',
@@ -556,7 +659,7 @@ class MarkdownEndpoint {
 		);
 
 		register_rest_route(
-			'markdown-converter/v1',
+			'web-page-content-to-markdown-converter/v1',
 			'/markdown',
 			[
 				'methods'             => 'GET',
@@ -627,7 +730,7 @@ class MarkdownEndpoint {
 		 * @param \WP_Post             $post Post object.
 		 * @param mixed                $request REST request object.
 		 */
-		$filtered = apply_filters( 'markdown_converter_rest_response', $response, $post, $request );
+		$filtered = apply_filters( 'web_page_content_to_markdown_converter_rest_response', $response, $post, $request );
 		return is_array( $filtered ) ? $filtered : $response;
 	}
 
@@ -665,7 +768,7 @@ class MarkdownEndpoint {
 		return [
 			'Content-Type: ' . Helpers::markdown_content_type(),
 			'X-Content-Type-Options: nosniff',
-			'X-WP-Markdown-Converter: ' . MARKDOWN_CONVERTER_VERSION,
+			'X-Web-Page-Content-To-Markdown-Converter: ' . WEB_PAGE_CONTENT_TO_MARKDOWN_CONVERTER_VERSION,
 			'Cache-Control: public, max-age=3600',
 		];
 	}
@@ -710,8 +813,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'markdown_converter_homepage_key_pages_args' === $filter_name ) {
-			return (array) apply_filters( 'markdown_converter_homepage_key_pages_args', $query_args, $this );
+		if ( 'web_page_content_to_markdown_converter_homepage_key_pages_args' === $filter_name ) {
+			return (array) apply_filters( 'web_page_content_to_markdown_converter_homepage_key_pages_args', $query_args, $this );
 		}
 		/**
 		 * Filter homepage recent-posts query args.
@@ -719,8 +822,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'markdown_converter_homepage_recent_posts_args' === $filter_name ) {
-			return (array) apply_filters( 'markdown_converter_homepage_recent_posts_args', $query_args, $this );
+		if ( 'web_page_content_to_markdown_converter_homepage_recent_posts_args' === $filter_name ) {
+			return (array) apply_filters( 'web_page_content_to_markdown_converter_homepage_recent_posts_args', $query_args, $this );
 		}
 		return $query_args;
 	}
@@ -769,11 +872,11 @@ class MarkdownEndpoint {
 	/**
 	 * Lazily instantiate the Markdown converter.
 	 *
-	 * @return MarkdownConverter
+	 * @return ContentMarkdownConverter
 	 */
 	protected function get_converter() {
 		if ( ! is_object( $this->converter ) || ! method_exists( $this->converter, 'convert_post_full' ) ) {
-			$this->converter = new MarkdownConverter();
+			$this->converter = new ContentMarkdownConverter();
 		}
 
 		return $this->converter;

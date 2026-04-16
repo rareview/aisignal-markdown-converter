@@ -2,10 +2,10 @@
 /**
  * Supplemental content extraction for thin rendered pages.
  *
- * @package MarkdownConverter
+ * @package WebPageContentToMarkdownConverter
  */
 
-namespace MarkdownConverter\Inc\Markdown;
+namespace WebPageContentToMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

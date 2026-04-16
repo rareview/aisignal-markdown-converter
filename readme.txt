@@ -1,4 +1,4 @@
-=== Markdown Converter ===
+=== Web Page Content To Markdown Converter ===
 Contributors: rareview, pratikbarvaliya
 Tags: markdown, rest-api, headless, yaml, acf
 Requires at least: 6.5
@@ -12,7 +12,7 @@ Expose WordPress content as clean Markdown, including ACF-backed content fallbac
 
 == Description ==
 
-Markdown Converter is a lightweight WordPress plugin that exposes eligible published content as Markdown while staying close to normal WordPress routing and output behavior.
+Web Page Content To Markdown Converter is a lightweight WordPress plugin that exposes eligible published content as Markdown while staying close to normal WordPress routing and output behavior.
 
 Features include:
 
@@ -34,7 +34,7 @@ This plugin is best suited for evaluation and development use.
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin through the WordPress Plugins screen.
-3. Go to `Settings > Markdown Converter`.
+3. Go to `Settings > Web Page Content To Markdown Converter`.
 4. Choose which public post types should expose Markdown.
 5. Optionally enable YAML frontmatter and crawler insights.
 

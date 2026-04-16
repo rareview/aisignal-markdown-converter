@@ -2,10 +2,10 @@
 /**
  * Render HTML into markdown using the WordPress HTML API.
  *
- * @package MarkdownConverter
+ * @package WebPageContentToMarkdownConverter
  */
 
-namespace MarkdownConverter\Inc\Markdown\Engine;
+namespace WebPageContentToMarkdownConverter\Inc\Markdown\Engine;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -109,7 +109,7 @@ class WpHtmlApiRenderer {
 
 		$soft_limit   = $this->options->soft_line_wrap;
 		$this->output = '';
-		$node_finder  = apply_filters( 'markdown_converter_starting_node_finder', null, $processor );
+		$node_finder  = apply_filters( 'web_page_content_to_markdown_converter_starting_node_finder', null, $processor );
 		if ( is_callable( $node_finder ) && ! call_user_func( $node_finder, $processor ) ) {
 			$processor = \WP_HTML_Processor::create_fragment( $this->html );
 		}

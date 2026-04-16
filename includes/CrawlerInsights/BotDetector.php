@@ -2,10 +2,10 @@
 /**
  * Bot detection for crawler insights.
  *
- * @package MarkdownConverter
+ * @package WebPageContentToMarkdownConverter
  */
 
-namespace MarkdownConverter\Inc\CrawlerInsights;
+namespace WebPageContentToMarkdownConverter\Inc\CrawlerInsights;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -168,7 +168,7 @@ class BotDetector {
 		 *
 		 * @param array<int, array<string, mixed>> $patterns Crawler pattern definitions.
 		 */
-		$patterns = apply_filters( 'markdown_converter_crawler_patterns', $patterns );
+		$patterns = apply_filters( 'web_page_content_to_markdown_converter_crawler_patterns', $patterns );
 		if ( ! is_array( $patterns ) ) {
 			return [];
 		}

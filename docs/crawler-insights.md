@@ -78,8 +78,8 @@ The `Crawler Insights` tab provides:
 
 Crawler insights can be customized with:
 
-- `markdown_converter_crawler_patterns`
-- `markdown_converter_crawler_should_log`
-- `markdown_converter_crawler_log_entry`
+- `web_page_content_to_markdown_converter_crawler_patterns`
+- `web_page_content_to_markdown_converter_crawler_should_log`
+- `web_page_content_to_markdown_converter_crawler_log_entry`
 
 See [Extensibility](./extensibility.md) for the hook details.

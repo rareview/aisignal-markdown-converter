@@ -2,22 +2,22 @@
 /**
  * Rendered-first markdown conversion for WordPress content.
  *
- * @package MarkdownConverter
+ * @package WebPageContentToMarkdownConverter
  */
 
-namespace MarkdownConverter\Inc\Markdown;
+namespace WebPageContentToMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 
-use MarkdownConverter\Inc\Helpers;
-use MarkdownConverter\Inc\Markdown\Engine\WpHtmlApiMarkdownEngine;
+use WebPageContentToMarkdownConverter\Inc\Helpers;
+use WebPageContentToMarkdownConverter\Inc\Markdown\Engine\WpHtmlApiMarkdownEngine;
 /**
  * Markdown converter.
  */
-class MarkdownConverter {
+class ContentMarkdownConverter {
 
 	/**
 	 * Request-level cache for resolved image alt text lookups.
@@ -102,7 +102,7 @@ class MarkdownConverter {
 		 * @param string   $markdown Markdown content.
 		 * @param \WP_Post $post     Post object.
 		 */
-		return apply_filters( 'markdown_converter_output', $markdown, $post );
+		return apply_filters( 'web_page_content_to_markdown_converter_output', $markdown, $post );
 	}
 
 	/**
@@ -477,7 +477,7 @@ class MarkdownConverter {
 		$heading_hits = preg_match_all( '/^#{1,4}\s+/m', $markdown );
 		$list_hits    = preg_match_all( '/^(?:[-*+]\s|\d+\.\s)/m', $markdown );
 		$table_hits   = preg_match_all( '/^\|.*\|$/m', $markdown );
-		$threshold    = (int) apply_filters( 'markdown_converter_thin_word_threshold', 120 );
+		$threshold    = (int) apply_filters( 'web_page_content_to_markdown_converter_thin_word_threshold', 120 );
 		if ( $word_count >= $threshold ) {
 			return false;
 		}
