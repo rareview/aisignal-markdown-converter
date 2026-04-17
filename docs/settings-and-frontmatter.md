@@ -5,7 +5,7 @@
 The plugin adds a settings screen at:
 
 ```text
-Settings > Web Page Content To Markdown Converter
+Settings > AISignal Markdown Converter
 ```
 
 It has two tabs:
@@ -39,7 +39,7 @@ The plugin is designed to work with many builder-based pages when important cont
 
 ## Per-post Exclusion
 
-Every public post type gets a `Web Page Content To Markdown Converter` side metabox in the editor with:
+Every public post type gets a `AISignal Markdown Converter` side metabox in the editor with:
 
 - `Exclude from Markdown output`
 

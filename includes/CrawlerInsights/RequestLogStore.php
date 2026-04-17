@@ -2,10 +2,10 @@
 /**
  * Request log persistence for crawler insights.
  *
- * @package WebPageContentToMarkdownConverter
+ * @package AISignalMarkdownConverter
  */
 
-namespace WebPageContentToMarkdownConverter\Inc\CrawlerInsights;
+namespace AISignalMarkdownConverter\Inc\CrawlerInsights;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -309,9 +309,9 @@ class RequestLogStore {
 	 */
 	protected function resolve_table_name(): string {
 		if ( is_object( $this->wpdb ) && isset( $this->wpdb->prefix ) ) {
-			return (string) $this->wpdb->prefix . 'web_page_content_to_markdown_converter_request_log';
+			return (string) $this->wpdb->prefix . 'aisignal_markdown_converter_request_log';
 		}
 
-		return 'web_page_content_to_markdown_converter_request_log';
+		return 'aisignal_markdown_converter_request_log';
 	}
 }

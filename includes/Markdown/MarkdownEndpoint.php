@@ -5,24 +5,24 @@
  * Handles .md URL endpoints and ?format=markdown query parameter.
  * Provides clean Markdown versions of any post/page via URL rewriting.
  *
- * @package WebPageContentToMarkdownConverter
+ * @package AISignalMarkdownConverter
  */
 
-namespace WebPageContentToMarkdownConverter\Inc\Markdown;
+namespace AISignalMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WebPageContentToMarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
-use WebPageContentToMarkdownConverter\Inc\Helpers;
+use AISignalMarkdownConverter\Inc\CrawlerInsights\CrawlerInsights;
+use AISignalMarkdownConverter\Inc\Helpers;
 
 /**
  * Handle Markdown routes and responses.
  */
 class MarkdownEndpoint {
 
-	private const QUERY_VAR_MD = 'web_page_content_to_markdown_converter_md';
+	private const QUERY_VAR_MD = 'aisignal_markdown_converter_md';
 
 	/**
 	 * The Markdown converter instance.
@@ -374,7 +374,7 @@ class MarkdownEndpoint {
 		 * @param array<int, string> $headers Header lines.
 		 * @param MarkdownEndpoint   $endpoint Endpoint instance.
 		 */
-		$headers = apply_filters( 'web_page_content_to_markdown_converter_response_headers', $headers, $this );
+		$headers = apply_filters( 'aisignal_markdown_converter_response_headers', $headers, $this );
 		return is_array( $headers ) ? array_values( $headers ) : $this->get_default_markdown_response_headers();
 	}
 
@@ -414,7 +414,7 @@ class MarkdownEndpoint {
 					'title'      => 'ASC',
 				],
 			],
-			'web_page_content_to_markdown_converter_homepage_key_pages_args'
+			'aisignal_markdown_converter_homepage_key_pages_args'
 		);
 
 		if ( ! empty( $key_pages ) ) {
@@ -435,7 +435,7 @@ class MarkdownEndpoint {
 				'orderby'        => 'date',
 				'order'          => 'DESC',
 			],
-			'web_page_content_to_markdown_converter_homepage_recent_posts_args'
+			'aisignal_markdown_converter_homepage_recent_posts_args'
 		);
 
 		if ( ! empty( $recent ) ) {
@@ -465,7 +465,7 @@ class MarkdownEndpoint {
 		 * @param string           $markdown Homepage markdown.
 		 * @param MarkdownEndpoint $endpoint Endpoint instance.
 		 */
-		return (string) apply_filters( 'web_page_content_to_markdown_converter_homepage_output', $markdown, $this );
+		return (string) apply_filters( 'aisignal_markdown_converter_homepage_output', $markdown, $this );
 	}
 
 	/**
@@ -580,7 +580,7 @@ class MarkdownEndpoint {
 		$url = get_permalink( $post );
 
 		if ( function_exists( 'wp_safe_redirect' ) ) {
-			wp_safe_redirect( $url, 302, 'Web Page Content To Markdown Converter' );
+			wp_safe_redirect( $url, 302, 'AISignal Markdown Converter' );
 			exit;
 		}
 
@@ -617,7 +617,7 @@ class MarkdownEndpoint {
 		}
 
 		if ( function_exists( 'wp_die' ) ) {
-			wp_die( esc_html__( 'Not Found', 'web-page-content-to-markdown-converter' ), '', [ 'response' => 404 ] );
+			wp_die( esc_html__( 'Not Found', 'aisignal-markdown-converter' ), '', [ 'response' => 404 ] );
 		}
 
 		exit;
@@ -642,7 +642,7 @@ class MarkdownEndpoint {
 	public function register_rest_routes() {
 		// These routes intentionally expose only already-public, markdown-eligible content.
 		register_rest_route(
-			'web-page-content-to-markdown-converter/v1',
+			'aisignal-markdown-converter/v1',
 			'/markdown/(?P<id>\d+)',
 			[
 				'methods'             => 'GET',
@@ -659,7 +659,7 @@ class MarkdownEndpoint {
 		);
 
 		register_rest_route(
-			'web-page-content-to-markdown-converter/v1',
+			'aisignal-markdown-converter/v1',
 			'/markdown',
 			[
 				'methods'             => 'GET',
@@ -730,7 +730,7 @@ class MarkdownEndpoint {
 		 * @param \WP_Post             $post Post object.
 		 * @param mixed                $request REST request object.
 		 */
-		$filtered = apply_filters( 'web_page_content_to_markdown_converter_rest_response', $response, $post, $request );
+		$filtered = apply_filters( 'aisignal_markdown_converter_rest_response', $response, $post, $request );
 		return is_array( $filtered ) ? $filtered : $response;
 	}
 
@@ -768,7 +768,7 @@ class MarkdownEndpoint {
 		return [
 			'Content-Type: ' . Helpers::markdown_content_type(),
 			'X-Content-Type-Options: nosniff',
-			'X-Web-Page-Content-To-Markdown-Converter: ' . WEB_PAGE_CONTENT_TO_MARKDOWN_CONVERTER_VERSION,
+			'X-AISignal-Markdown-Converter: ' . AISIGNAL_MARKDOWN_CONVERTER_VERSION,
 			'Cache-Control: public, max-age=3600',
 		];
 	}
@@ -813,8 +813,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'web_page_content_to_markdown_converter_homepage_key_pages_args' === $filter_name ) {
-			return (array) apply_filters( 'web_page_content_to_markdown_converter_homepage_key_pages_args', $query_args, $this );
+		if ( 'aisignal_markdown_converter_homepage_key_pages_args' === $filter_name ) {
+			return (array) apply_filters( 'aisignal_markdown_converter_homepage_key_pages_args', $query_args, $this );
 		}
 		/**
 		 * Filter homepage recent-posts query args.
@@ -822,8 +822,8 @@ class MarkdownEndpoint {
 		 * @param array<string, mixed> $query_args Query args.
 		 * @param MarkdownEndpoint     $endpoint Endpoint instance.
 		 */
-		if ( 'web_page_content_to_markdown_converter_homepage_recent_posts_args' === $filter_name ) {
-			return (array) apply_filters( 'web_page_content_to_markdown_converter_homepage_recent_posts_args', $query_args, $this );
+		if ( 'aisignal_markdown_converter_homepage_recent_posts_args' === $filter_name ) {
+			return (array) apply_filters( 'aisignal_markdown_converter_homepage_recent_posts_args', $query_args, $this );
 		}
 		return $query_args;
 	}

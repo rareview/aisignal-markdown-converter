@@ -2,10 +2,10 @@
 /**
  * YAML frontmatter builder for Markdown documents.
  *
- * @package WebPageContentToMarkdownConverter
+ * @package AISignalMarkdownConverter
  */
 
-namespace WebPageContentToMarkdownConverter\Inc\Markdown;
+namespace AISignalMarkdownConverter\Inc\Markdown;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,7 +43,7 @@ class FrontmatterBuilder {
 		 * @param \WP_Post $subject       Post object.
 		 * @param string   $body_markdown Markdown body content.
 		 */
-		$data = apply_filters( 'web_page_content_to_markdown_converter_frontmatter_data', $data, $subject, $body_markdown );
+		$data = apply_filters( 'aisignal_markdown_converter_frontmatter_data', $data, $subject, $body_markdown );
 		$yaml = $this->array_to_yaml( $data );
 
 		/**
@@ -53,7 +53,7 @@ class FrontmatterBuilder {
 		 * @param \WP_Post $subject Post object.
 		 * @param array    $data Frontmatter data.
 		 */
-		$yaml = apply_filters( 'web_page_content_to_markdown_converter_frontmatter', $yaml, $subject, $data );
+		$yaml = apply_filters( 'aisignal_markdown_converter_frontmatter', $yaml, $subject, $data );
 		return "---\n{$yaml}---\n\n";
 	}
 

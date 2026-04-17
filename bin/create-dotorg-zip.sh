@@ -5,10 +5,10 @@ set -eu
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)"
 REPO_DIR="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd -P)"
 DIST_DIR="${REPO_DIR}/dist"
-ZIP_PATH="${DIST_DIR}/web-page-content-to-markdown-converter.zip"
+ZIP_PATH="${DIST_DIR}/aisignal-markdown-converter.zip"
 DISTIGNORE_PATH="${REPO_DIR}/.distignore"
 TEMP_DIR="$(mktemp -d)"
-STAGE_DIR="${TEMP_DIR}/web-page-content-to-markdown-converter"
+STAGE_DIR="${TEMP_DIR}/aisignal-markdown-converter"
 
 cleanup() {
 	rm -rf "${TEMP_DIR}"
@@ -16,7 +16,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-if [ ! -f "${REPO_DIR}/web-page-content-to-markdown-converter.php" ]; then
+if [ ! -f "${REPO_DIR}/aisignal-markdown-converter.php" ]; then
 	echo "Main plugin file not found in ${REPO_DIR}" >&2
 	exit 1
 fi
@@ -35,7 +35,7 @@ rsync -a --delete --delete-excluded \
 
 (
 	cd "${TEMP_DIR}"
-	zip -rq "${ZIP_PATH}" "web-page-content-to-markdown-converter"
+	zip -rq "${ZIP_PATH}" "aisignal-markdown-converter"
 )
 
 echo "Created ${ZIP_PATH}"

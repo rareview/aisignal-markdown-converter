@@ -2,12 +2,12 @@
 /**
  * Register class.
  *
- * @package WebPageContentToMarkdownConverter
+ * @package AISignalMarkdownConverter
  */
 
-namespace WebPageContentToMarkdownConverter\Inc;
+namespace AISignalMarkdownConverter\Inc;
 
-use WebPageContentToMarkdownConverter\Inc\Markdown\MarkdownAvailability;
+use AISignalMarkdownConverter\Inc\Markdown\MarkdownAvailability;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -98,7 +98,7 @@ class Register {
 		 * @param string              $url     Markdown URL, or empty string when unavailable.
 		 * @param array<string,mixed> $context Discovery context.
 		 */
-		$url = (string) apply_filters( 'web_page_content_to_markdown_converter_url', $url, $context );
+		$url = (string) apply_filters( 'aisignal_markdown_converter_url', $url, $context );
 		/**
 		 * Filter whether alternate Markdown discovery should be exposed for the current request.
 		 *
@@ -106,7 +106,7 @@ class Register {
 		 * @param string              $url     Markdown URL after filtering.
 		 * @param array<string,mixed> $context Discovery context.
 		 */
-		$enabled = (bool) apply_filters( 'web_page_content_to_markdown_converter_discovery_enabled', '' !== $url, $url, $context );
+		$enabled = (bool) apply_filters( 'aisignal_markdown_converter_discovery_enabled', '' !== $url, $url, $context );
 		return $enabled ? $url : '';
 	}
 }

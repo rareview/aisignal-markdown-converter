@@ -2,10 +2,10 @@
 /**
  * Crawler insights service.
  *
- * @package WebPageContentToMarkdownConverter
+ * @package AISignalMarkdownConverter
  */
 
-namespace WebPageContentToMarkdownConverter\Inc\CrawlerInsights;
+namespace AISignalMarkdownConverter\Inc\CrawlerInsights;
 
 use DateInterval;
 use DateTimeImmutable;
@@ -20,11 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manage crawler insights lifecycle, logging, and reporting.
  */
 class CrawlerInsights {
-	public const OPTION_ENABLED        = 'web_page_content_to_markdown_converter_enable_crawler_insights';
-	public const OPTION_RETENTION_DAYS = 'web_page_content_to_markdown_converter_crawler_retention_days';
-	public const OPTION_SCHEMA_VERSION = 'web_page_content_to_markdown_converter_crawler_log_schema_version';
+	public const OPTION_ENABLED        = 'aisignal_markdown_converter_enable_crawler_insights';
+	public const OPTION_RETENTION_DAYS = 'aisignal_markdown_converter_crawler_retention_days';
+	public const OPTION_SCHEMA_VERSION = 'aisignal_markdown_converter_crawler_log_schema_version';
 	public const SCHEMA_VERSION        = '1';
-	public const CRON_HOOK             = 'web_page_content_to_markdown_converter_prune_request_log';
+	public const CRON_HOOK             = 'aisignal_markdown_converter_prune_request_log';
 
 	/**
 	 * Prevent duplicate hook registration.
@@ -146,7 +146,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed>  $context Request context.
 		 * @param CrawlerInsights       $service Service instance.
 		 */
-		$should_log = (bool) apply_filters( 'web_page_content_to_markdown_converter_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
+		$should_log = (bool) apply_filters( 'aisignal_markdown_converter_crawler_should_log', ! empty( $detection['is_known_bot'] ), $entry, $context, $this );
 		if ( ! $should_log ) {
 			return false;
 		}
@@ -158,7 +158,7 @@ class CrawlerInsights {
 		 * @param array<string, mixed> $context Request context.
 		 * @param CrawlerInsights      $service Service instance.
 		 */
-		$entry = apply_filters( 'web_page_content_to_markdown_converter_crawler_log_entry', $entry, $context, $this );
+		$entry = apply_filters( 'aisignal_markdown_converter_crawler_log_entry', $entry, $context, $this );
 		if ( ! is_array( $entry ) ) {
 			return false;
 		}

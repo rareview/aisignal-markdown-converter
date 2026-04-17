@@ -1,8 +1,8 @@
 <?php
 /**
- * Uninstall cleanup for Web Page Content To Markdown Converter.
+ * Uninstall cleanup for AISignal Markdown Converter.
  *
- * @package WebPageContentToMarkdownConverter
+ * @package AISignalMarkdownConverter
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
@@ -14,14 +14,14 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  *
  * @return void
  */
-function web_page_content_to_markdown_converter_uninstall_delete_options(): void {
+function aisignal_markdown_converter_uninstall_delete_options(): void {
 	$options = [
-		'web_page_content_to_markdown_converter_post_types',
-		'web_page_content_to_markdown_converter_enable_frontmatter',
-		'web_page_content_to_markdown_converter_enable_crawler_insights',
-		'web_page_content_to_markdown_converter_crawler_retention_days',
-		'web_page_content_to_markdown_converter_crawler_log_schema_version',
-		'web_page_content_to_markdown_converter_excluded_post_ids',
+		'aisignal_markdown_converter_post_types',
+		'aisignal_markdown_converter_enable_frontmatter',
+		'aisignal_markdown_converter_enable_crawler_insights',
+		'aisignal_markdown_converter_crawler_retention_days',
+		'aisignal_markdown_converter_crawler_log_schema_version',
+		'aisignal_markdown_converter_excluded_post_ids',
 	];
 
 	foreach ( $options as $option ) {
@@ -35,12 +35,12 @@ function web_page_content_to_markdown_converter_uninstall_delete_options(): void
  *
  * @return void
  */
-function web_page_content_to_markdown_converter_uninstall_delete_post_meta(): void {
+function aisignal_markdown_converter_uninstall_delete_post_meta(): void {
 	if ( ! function_exists( 'delete_metadata' ) ) {
 		return;
 	}
 
-	delete_metadata( 'post', 0, '_web_page_content_to_markdown_converter_excluded', '', true );
+	delete_metadata( 'post', 0, '_aisignal_markdown_converter_excluded', '', true );
 }
 
 /**
@@ -48,7 +48,7 @@ function web_page_content_to_markdown_converter_uninstall_delete_post_meta(): vo
  *
  * @return void
  */
-function web_page_content_to_markdown_converter_uninstall_drop_log_table(): void {
+function aisignal_markdown_converter_uninstall_drop_log_table(): void {
 	global $wpdb;
 
 	if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -63,12 +63,12 @@ function web_page_content_to_markdown_converter_uninstall_drop_log_table(): void
 		return;
 	}
 
-	$web_page_content_to_markdown_converter_table_name = (string) $wpdb->prefix . 'web_page_content_to_markdown_converter_request_log';
+	$aisignal_markdown_converter_table_name = (string) $wpdb->prefix . 'aisignal_markdown_converter_request_log';
 	maybe_drop_table(
-		$web_page_content_to_markdown_converter_table_name,
+		$aisignal_markdown_converter_table_name,
 		sprintf(
 			'DROP TABLE IF EXISTS %s',
-			$web_page_content_to_markdown_converter_table_name
+			$aisignal_markdown_converter_table_name
 		)
 	);
 }
@@ -78,9 +78,9 @@ function web_page_content_to_markdown_converter_uninstall_drop_log_table(): void
  *
  * @return void
  */
-function web_page_content_to_markdown_converter_uninstall_clear_scheduled_hooks(): void {
+function aisignal_markdown_converter_uninstall_clear_scheduled_hooks(): void {
 	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
-		wp_clear_scheduled_hook( 'web_page_content_to_markdown_converter_prune_request_log' );
+		wp_clear_scheduled_hook( 'aisignal_markdown_converter_prune_request_log' );
 	}
 }
 
@@ -89,26 +89,26 @@ function web_page_content_to_markdown_converter_uninstall_clear_scheduled_hooks(
  *
  * @return void
  */
-function web_page_content_to_markdown_converter_uninstall_cleanup_current_site(): void {
-	web_page_content_to_markdown_converter_uninstall_clear_scheduled_hooks();
-	web_page_content_to_markdown_converter_uninstall_delete_options();
-	web_page_content_to_markdown_converter_uninstall_delete_post_meta();
-	web_page_content_to_markdown_converter_uninstall_drop_log_table();
+function aisignal_markdown_converter_uninstall_cleanup_current_site(): void {
+	aisignal_markdown_converter_uninstall_clear_scheduled_hooks();
+	aisignal_markdown_converter_uninstall_delete_options();
+	aisignal_markdown_converter_uninstall_delete_post_meta();
+	aisignal_markdown_converter_uninstall_drop_log_table();
 }
 
 if ( is_multisite() && function_exists( 'get_sites' ) && function_exists( 'switch_to_blog' ) && function_exists( 'restore_current_blog' ) ) {
-	$web_page_content_to_markdown_converter_site_ids = get_sites(
+	$aisignal_markdown_converter_site_ids = get_sites(
 		[
 			'fields' => 'ids',
 			'number' => 0,
 		]
 	);
 
-	foreach ( $web_page_content_to_markdown_converter_site_ids as $web_page_content_to_markdown_converter_site_id ) {
-		switch_to_blog( (int) $web_page_content_to_markdown_converter_site_id );
-		web_page_content_to_markdown_converter_uninstall_cleanup_current_site();
+	foreach ( $aisignal_markdown_converter_site_ids as $aisignal_markdown_converter_site_id ) {
+		switch_to_blog( (int) $aisignal_markdown_converter_site_id );
+		aisignal_markdown_converter_uninstall_cleanup_current_site();
 		restore_current_blog();
 	}
 } else {
-	web_page_content_to_markdown_converter_uninstall_cleanup_current_site();
+	aisignal_markdown_converter_uninstall_cleanup_current_site();
 }
