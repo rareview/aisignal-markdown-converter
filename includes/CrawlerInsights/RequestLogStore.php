@@ -39,7 +39,7 @@ class RequestLogStore {
 	public function __construct( $db = null, string $table_name = '' ) {
 		global $wpdb;
 
-		$this->wpdb       = $db ?: $wpdb;
+		$this->wpdb       = null === $db ? $wpdb : $db;
 		$this->table_name = '' !== $table_name ? $table_name : $this->resolve_table_name();
 	}
 
@@ -64,7 +64,7 @@ class RequestLogStore {
 			return false;
 		}
 
-		$row = [
+		$row = array(
 			'occurred_at_gmt' => (string) ( $entry['occurred_at_gmt'] ?? gmdate( 'Y-m-d H:i:s' ) ),
 			'request_url'     => (string) ( $entry['request_url'] ?? '' ),
 			'request_method'  => (string) ( $entry['request_method'] ?? 'GET' ),
@@ -73,12 +73,12 @@ class RequestLogStore {
 			'is_known_bot'    => ! empty( $entry['is_known_bot'] ) ? 1 : 0,
 			'request_surface' => (string) ( $entry['request_surface'] ?? '' ),
 			'post_id'         => absint( $entry['post_id'] ?? 0 ),
-		];
+		);
 
 		$result = $this->wpdb->insert(
 			$this->table_name,
 			$row,
-			[ '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d' ]
+			array( '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d' )
 		);
 
 		return false !== $result;
@@ -94,11 +94,11 @@ class RequestLogStore {
 	 */
 	public function get_stats( string $retention_cutoff_gmt, string $today_cutoff_gmt ): array {
 		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_var' ) ) {
-			return [
+			return array(
 				'total_requests' => 0,
 				'requests_today' => 0,
 				'unique_bots'    => 0,
-			];
+			);
 		}
 
 		// phpcs:disable WordPress.DB.PreparedSQL -- Table name is an internal identifier; dynamic values are passed through prepare().
@@ -127,11 +127,11 @@ class RequestLogStore {
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL
 
-		return [
+		return array(
 			'total_requests' => $total,
 			'requests_today' => $today,
 			'unique_bots'    => $unique_bots,
-		];
+		);
 	}
 
 	/**
@@ -143,7 +143,7 @@ class RequestLogStore {
 	 */
 	public function get_available_bots( string $retention_cutoff_gmt ): array {
 		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_results' ) ) {
-			return [];
+			return array();
 		}
 
 		// phpcs:disable WordPress.DB.PreparedSQL -- Table name is an internal identifier; dynamic values are passed through prepare().
@@ -157,7 +157,7 @@ class RequestLogStore {
 		// phpcs:enable WordPress.DB.PreparedSQL
 
 		if ( ! is_array( $results ) ) {
-			return [];
+			return array();
 		}
 
 		return array_values(
@@ -168,10 +168,10 @@ class RequestLogStore {
 							return null;
 						}
 
-						return [
+						return array(
 							'bot_key'   => (string) $row->bot_key,
 							'bot_label' => (string) $row->bot_label,
-						];
+						);
 					},
 					$results
 				)
@@ -196,10 +196,10 @@ class RequestLogStore {
 			! method_exists( $this->wpdb, 'get_results' ) ||
 			! method_exists( $this->wpdb, 'get_var' )
 		) {
-			return [
+			return array(
 				'total_items' => 0,
-				'items'       => [],
-			];
+				'items'       => array(),
+			);
 		}
 
 		$page     = max( 1, $page );
@@ -246,10 +246,10 @@ class RequestLogStore {
 		}
 		// phpcs:enable WordPress.DB.PreparedSQL
 
-		return [
+		return array(
 			'total_items' => $total,
-			'items'       => is_array( $items ) ? $items : [],
-		];
+			'items'       => is_array( $items ) ? $items : array(),
+		);
 	}
 
 	/**
@@ -300,6 +300,99 @@ class RequestLogStore {
 		// phpcs:enable WordPress.DB.PreparedSQL
 
 		return false === $deleted ? 0 : (int) $deleted;
+	}
+
+	/**
+	 * Get requests count per bot.
+	 *
+	 * @param string $retention_cutoff_gmt Retention cutoff in GMT mysql format.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_requests_per_bot( string $retention_cutoff_gmt ): array {
+		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_results' ) ) {
+			return array();
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name is an internal identifier; dynamic values are passed through prepare().
+		$results = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				'SELECT bot_key, bot_label, COUNT(*) as count FROM %i WHERE occurred_at_gmt >= %s GROUP BY bot_key ORDER BY count DESC',
+				$this->table_name,
+				$retention_cutoff_gmt
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL
+
+		if ( ! is_array( $results ) ) {
+			return array();
+		}
+
+		return array_values(
+			array_filter(
+				array_map(
+					static function ( $row ): ?array {
+						if ( ! is_object( $row ) || empty( $row->bot_key ) ) {
+							return null;
+						}
+
+						return array(
+							'bot_key'   => (string) $row->bot_key,
+							'bot_label' => (string) $row->bot_label,
+							'count'     => (int) $row->count,
+						);
+					},
+					$results
+				)
+			)
+		);
+	}
+
+	/**
+	 * Get requests count per day by bot.
+	 *
+	 * @param string $retention_cutoff_gmt Retention cutoff in GMT mysql format.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_requests_per_day_by_bot( string $retention_cutoff_gmt ): array {
+		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_results' ) ) {
+			return array();
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name is an internal identifier; dynamic values are passed through prepare().
+		$results = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				'SELECT DATE(occurred_at_gmt) as date, bot_key, bot_label, COUNT(*) as count FROM %i WHERE occurred_at_gmt >= %s GROUP BY date, bot_key ORDER BY date ASC, bot_key ASC',
+				$this->table_name,
+				$retention_cutoff_gmt
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL
+
+		if ( ! is_array( $results ) ) {
+			return array();
+		}
+
+		return array_values(
+			array_filter(
+				array_map(
+					static function ( $row ): ?array {
+						if ( ! is_object( $row ) || empty( $row->date ) || empty( $row->bot_key ) ) {
+							return null;
+						}
+
+						return array(
+							'date'      => (string) $row->date,
+							'bot_key'   => (string) $row->bot_key,
+							'bot_label' => (string) $row->bot_label,
+							'count'     => (int) $row->count,
+						);
+					},
+					$results
+				)
+			)
+		);
 	}
 
 	/**
