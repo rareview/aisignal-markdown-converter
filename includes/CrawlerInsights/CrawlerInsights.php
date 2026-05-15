@@ -61,11 +61,11 @@ class CrawlerInsights {
 			self::$hooks_registered = true;
 
 			if ( function_exists( 'add_action' ) ) {
-				add_action( 'init', array( $this, 'ensure_prune_schedule' ) );
-				add_action( self::CRON_HOOK, array( $this, 'handle_prune_event' ) );
+				add_action( 'init', [ $this, 'ensure_prune_schedule' ] );
+				add_action( self::CRON_HOOK, [ $this, 'handle_prune_event' ] );
 				add_action(
 					'update_option_' . self::OPTION_RETENTION_DAYS,
-					array( $this, 'handle_retention_days_updated' ),
+					[ $this, 'handle_retention_days_updated' ],
 					10,
 					2
 				);
@@ -118,7 +118,7 @@ class CrawlerInsights {
 	 *
 	 * @return bool
 	 */
-	public function log_request( array $context = array() ): bool {
+	public function log_request( array $context = [] ): bool {
 		if ( ! $this->is_enabled() ) {
 			return false;
 		}
@@ -127,7 +127,7 @@ class CrawlerInsights {
 		$detection = $this->detector->detect( $headers );
 		$post_id   = $this->extract_post_id( $context );
 
-		$entry = array(
+		$entry = [
 			'occurred_at_gmt' => $this->current_gmt_mysql(),
 			'request_url'     => $this->build_current_request_url( $context ),
 			'request_method'  => $this->get_request_method(),
@@ -136,7 +136,7 @@ class CrawlerInsights {
 			'is_known_bot'    => ! empty( $detection['is_known_bot'] ),
 			'request_surface' => sanitize_key( (string) ( $context['request_surface'] ?? '' ) ),
 			'post_id'         => $post_id,
-		);
+		];
 
 		/**
 		 * Filter whether a detected request should be logged.
@@ -254,7 +254,8 @@ class CrawlerInsights {
 		}
 
 		return $this->store->get_requests_per_day_by_bot(
-			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) )
+			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) ),
+			function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' )
 		);
 	}
 
@@ -419,7 +420,7 @@ class CrawlerInsights {
 	 * @return array<string, string>
 	 */
 	protected function extract_request_headers(): array {
-		$headers = array();
+		$headers = [];
 
 		foreach ( $_SERVER as $key => $value ) {
 			if ( ! is_string( $key ) || ! is_scalar( $value ) ) {
@@ -454,7 +455,7 @@ class CrawlerInsights {
 			$scheme = 'https';
 			if ( isset( $_SERVER['HTTPS'] ) ) {
 				$https  = strtolower( sanitize_text_field( wp_unslash( (string) $_SERVER['HTTPS'] ) ) );
-				$scheme = in_array( $https, array( 'on', '1', 'true' ), true ) ? 'https' : 'http';
+				$scheme = in_array( $https, [ 'on', '1', 'true' ], true ) ? 'https' : 'http';
 			}
 
 			return $this->sanitize_url( $scheme . '://' . $host . $uri );
@@ -515,7 +516,7 @@ class CrawlerInsights {
 	 * @return array<string, mixed>
 	 */
 	protected function sanitize_log_entry( array $entry ): array {
-		return array(
+		return [
 			'occurred_at_gmt' => sanitize_text_field( (string) ( $entry['occurred_at_gmt'] ?? '' ) ),
 			'request_url'     => $this->sanitize_url( (string) ( $entry['request_url'] ?? '' ) ),
 			'request_method'  => sanitize_text_field( (string) ( $entry['request_method'] ?? 'GET' ) ),
@@ -524,7 +525,7 @@ class CrawlerInsights {
 			'is_known_bot'    => ! empty( $entry['is_known_bot'] ),
 			'request_surface' => sanitize_key( (string) ( $entry['request_surface'] ?? '' ) ),
 			'post_id'         => absint( $entry['post_id'] ?? 0 ),
-		);
+		];
 	}
 
 	/**

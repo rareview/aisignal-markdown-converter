@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       AISignal Markdown Converter
  * Description:       Expose WordPress content as clean Markdown through .md URLs, query parameters, and REST.
- * Version:           1.0.0
+ * Version:           1.0.2
  * Author:            Rareview®
  * Author URI:        https://rareview.com
  * License:           GPL v2 or later
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AISIGNAL_MARKDOWN_CONVERTER_VERSION', '1.0.0' );
+define( 'AISIGNAL_MARKDOWN_CONVERTER_VERSION', '1.0.2' );
 define( 'AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE', __FILE__ );
 

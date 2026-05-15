@@ -46,18 +46,18 @@ class AdminPage {
 	 */
 	public function __construct() {
 		if ( function_exists( 'is_admin' ) && is_admin() && function_exists( 'add_action' ) ) {
-			add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
-			add_action( 'admin_init', array( $this, 'register_settings' ) );
-			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
-			add_action( 'admin_post_aisignal_markdown_converter_clear_crawler_log', array( $this, 'clear_crawler_log' ) );
-			add_action( 'add_meta_boxes', array( $this, 'add_post_settings_meta_boxes' ) );
-			add_action( 'save_post', array( $this, 'save_post_settings' ), 10, 2 );
+			add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
+			add_action( 'admin_init', [ $this, 'register_settings' ] );
+			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+			add_action( 'admin_post_aisignal_markdown_converter_clear_crawler_log', [ $this, 'clear_crawler_log' ] );
+			add_action( 'add_meta_boxes', [ $this, 'add_post_settings_meta_boxes' ] );
+			add_action( 'save_post', [ $this, 'save_post_settings' ], 10, 2 );
 		}
 
 		if ( function_exists( 'add_filter' ) && defined( 'AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE' ) && function_exists( 'plugin_basename' ) ) {
 			add_filter(
 				'plugin_action_links_' . plugin_basename( AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE ),
-				array( $this, 'add_settings_link' )
+				[ $this, 'add_settings_link' ]
 			);
 		}
 	}
@@ -73,7 +73,7 @@ class AdminPage {
 			__( 'AISignal Markdown Converter', 'aisignal-markdown-converter' ),
 			'manage_options',
 			'aisignal-markdown-converter',
-			array( $this, 'render_page' )
+			[ $this, 'render_page' ]
 		);
 	}
 
@@ -85,22 +85,30 @@ class AdminPage {
 	 * @return void
 	 */
 	public function enqueue_admin_assets( string $hook_suffix ): void {
-		if ( 'settings_page_aisignal-markdown-converter' !== $hook_suffix ) {
+		if ( ! $this->is_plugin_settings_page( $hook_suffix ) ) {
 			return;
 		}
 
 		wp_enqueue_style(
 			'aisignal-markdown-converter-admin',
 			plugins_url( 'assets/css/admin.css', AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE ),
-			array(),
+			[],
 			AISIGNAL_MARKDOWN_CONVERTER_VERSION
 		);
 
 		wp_enqueue_script(
 			'chartjs',
-			'https://cdn.jsdelivr.net/npm/chart.js',
-			array(),
-			'latest',
+			plugins_url( 'assets/js/vendor/chart.min.js', AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE ),
+			[],
+			'4.5.1',
+			true
+		);
+
+		wp_enqueue_script(
+			'aisignal-markdown-converter-admin-script',
+			plugins_url( 'assets/js/admin.js', AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE ),
+			[ 'chartjs' ],
+			AISIGNAL_MARKDOWN_CONVERTER_VERSION,
 			true
 		);
 	}
@@ -150,7 +158,7 @@ class AdminPage {
 	 * @return array<int, string>
 	 */
 	public function sanitize_markdown_post_types( $value ): array {
-		$value = is_array( $value ) ? array_map( 'sanitize_key', $value ) : array();
+		$value = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
 
 		return array_values( array_intersect( $value, Helpers::get_public_post_types() ) );
 	}
@@ -227,7 +235,7 @@ class AdminPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin UI state.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'general';
 
-		return in_array( $tab, array( 'general', 'crawler-insights' ), true ) ? $tab : 'general';
+		return in_array( $tab, [ 'general', 'crawler-insights' ], true ) ? $tab : 'general';
 	}
 
 	/**
@@ -238,19 +246,19 @@ class AdminPage {
 	 * @return void
 	 */
 	protected function render_tab_navigation( string $active_tab ): void {
-		$tabs = array(
+		$tabs = [
 			'general'          => __( 'General', 'aisignal-markdown-converter' ),
 			'crawler-insights' => __( 'Crawler Insights', 'aisignal-markdown-converter' ),
-		);
+		];
 		?>
 		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'AISignal Markdown Converter settings sections', 'aisignal-markdown-converter' ); ?>">
 			<?php foreach ( $tabs as $tab => $label ) : ?>
 				<?php
 				$tab_url = add_query_arg(
-					array(
+					[
 						'page' => 'aisignal-markdown-converter',
 						'tab'  => $tab,
-					),
+					],
 					admin_url( 'options-general.php' )
 				);
 				?>
@@ -358,28 +366,28 @@ class AdminPage {
 		$available_bots          = $service->get_available_bots();
 		$log_result              = $service->get_logs( $selected_bot, $current_page, $per_page );
 		$total_pages             = max( 1, (int) ceil( ( (int) $log_result['total_items'] ) / $per_page ) );
-		$items                   = isset( $log_result['items'] ) && is_array( $log_result['items'] ) ? $log_result['items'] : array();
+		$items                   = isset( $log_result['items'] ) && is_array( $log_result['items'] ) ? $log_result['items'] : [];
 		$requests_per_bot        = $service->get_requests_per_bot();
 		$requests_per_day_by_bot = $service->get_requests_per_day_by_bot();
 
 		// Prepare data for charts.
-		$per_bot_data = array(
+		$per_bot_data = [
 			'labels' => array_column( $requests_per_bot, 'bot_label' ),
 			'data'   => array_column( $requests_per_bot, 'count' ),
-		);
+		];
 
 		// For bar chart.
 		$dates = array_unique( array_column( $requests_per_day_by_bot, 'date' ) );
 		sort( $dates );
 		$bots       = array_unique( array_column( $requests_per_day_by_bot, 'bot_key' ) );
-		$bot_labels = array();
+		$bot_labels = [];
 		foreach ( $bots as $bot_key ) {
 			$found = array_filter( $requests_per_day_by_bot, fn( $row ) => $row['bot_key'] === $bot_key );
 			if ( $found ) {
 				$bot_labels[ $bot_key ] = reset( $found )['bot_label'];
 			}
 		}
-		$colors = array( '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384' );
+		$colors = [ '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384' ];
 
 		// Assign consistent colors to bots.
 		$all_bot_keys = array_unique(
@@ -389,36 +397,82 @@ class AdminPage {
 			)
 		);
 		sort( $all_bot_keys );
-		$bot_colors = array();
+		$bot_colors = [];
 		foreach ( $all_bot_keys as $index => $bot_key ) {
 			$bot_colors[ $bot_key ] = $colors[ $index % count( $colors ) ];
 		}
 
-		$datasets = array();
+		$datasets = [];
 		foreach ( $bots as $bot_key ) {
-			$data = array();
+			$data = [];
 			foreach ( $dates as $date ) {
 				$found  = array_filter( $requests_per_day_by_bot, fn( $row ) => $row['date'] === $date && $row['bot_key'] === $bot_key );
 				$data[] = $found ? reset( $found )['count'] : 0;
 			}
-			$datasets[] = array(
+			$datasets[] = [
 				'label'           => $bot_labels[ $bot_key ] ?? $bot_key,
 				'data'            => $data,
 				'backgroundColor' => $bot_colors[ $bot_key ] ?? '#C9CBCF',
-			);
+			];
 		}
-		$per_day_data = array(
+		$per_day_data = [
 			'labels'   => $dates,
 			'datasets' => $datasets,
-		);
+		];
 
 		// Doughnut colors in label order.
 		$bot_key_by_label = array_column( $requests_per_bot, 'bot_key', 'bot_label' );
-		$doughnut_colors  = array();
+		$doughnut_colors  = [];
 		foreach ( $per_bot_data['labels'] as $label ) {
 			$bot_key           = $bot_key_by_label[ $label ] ?? '';
 			$doughnut_colors[] = $bot_colors[ $bot_key ] ?? '#C9CBCF';
 		}
+
+		$requests_per_bot_chart = [
+			'type'    => 'doughnut',
+			'data'    => [
+				'labels'   => $per_bot_data['labels'],
+				'datasets' => [
+					[
+						'data'            => $per_bot_data['data'],
+						'backgroundColor' => $doughnut_colors,
+					],
+				],
+			],
+			'options' => [
+				'responsive' => true,
+				'animation'  => false,
+				'plugins'    => [
+					'legend' => [
+						'position' => 'bottom',
+					],
+				],
+			],
+		];
+		$requests_per_day_chart = [
+			'type'    => 'bar',
+			'data'    => [
+				'labels'   => $per_day_data['labels'],
+				'datasets' => $per_day_data['datasets'],
+			],
+			'options' => [
+				'responsive' => true,
+				'animation'  => false,
+				'scales'     => [
+					'x' => [
+						'stacked' => true,
+					],
+					'y' => [
+						'stacked' => true,
+					],
+				],
+				'plugins'    => [
+					'legend' => [
+						'position' => 'bottom',
+					],
+				],
+			],
+		];
 		?>
 		<form action="options.php" method="post">
 				<?php settings_fields( self::OPTION_GROUP_CRAWLER ); ?>
@@ -505,11 +559,19 @@ class AdminPage {
 			<div class="aisignal-markdown-converter-crawler-charts">
 				<div class="aisignal-markdown-converter-crawler-card">
 					<h3><?php echo esc_html__( 'Requests per Day', 'aisignal-markdown-converter' ); ?></h3>
-					<canvas id="requestsPerDayChart"></canvas>
+					<canvas
+						id="requestsPerDayChart"
+						class="aisignal-markdown-converter-chart"
+						data-chart-config="<?php echo esc_attr( wp_json_encode( $requests_per_day_chart ) ); ?>"
+					></canvas>
 				</div>
 				<div class="aisignal-markdown-converter-crawler-card aisignal-markdown-converter-crawler-card-doughnut">
 					<h3><?php echo esc_html__( 'Requests per Bot', 'aisignal-markdown-converter' ); ?></h3>
-					<canvas id="requestsPerBotChart"></canvas>
+					<canvas
+						id="requestsPerBotChart"
+						class="aisignal-markdown-converter-chart"
+						data-chart-config="<?php echo esc_attr( wp_json_encode( $requests_per_bot_chart ) ); ?>"
+					></canvas>
 				</div>
 			</div>
 
@@ -546,7 +608,7 @@ class AdminPage {
 					action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 					method="post"
 					class="aisignal-markdown-converter-crawler-clear-form"
-					onsubmit="return confirm('<?php echo esc_attr__( 'Clear the entire crawler request log?', 'aisignal-markdown-converter' ); ?>');"
+					data-confirm-message="<?php echo esc_attr__( 'Clear the entire crawler request log?', 'aisignal-markdown-converter' ); ?>"
 				>
 					<input type="hidden" name="action" value="aisignal_markdown_converter_clear_crawler_log" />
 					<?php wp_nonce_field( 'aisignal_markdown_converter_clear_crawler_log' ); ?>
@@ -586,14 +648,14 @@ class AdminPage {
 				<?php
 				echo wp_kses_post(
 					paginate_links(
-						array(
+						[
 							'base'      => add_query_arg(
-								array(
+								[
 									'page'  => 'aisignal-markdown-converter',
 									'tab'   => 'crawler-insights',
 									'bot'   => $selected_bot,
 									'paged' => '%#%',
-								),
+								],
 								admin_url( 'options-general.php' )
 							),
 							'format'    => '',
@@ -601,67 +663,12 @@ class AdminPage {
 							'total'     => $total_pages,
 							'prev_text' => __( '&laquo;', 'aisignal-markdown-converter' ),
 							'next_text' => __( '&raquo;', 'aisignal-markdown-converter' ),
-						)
+						]
 					)
 				);
 				?>
 				</div></div>
 			<?php endif; ?>
-			<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				// Doughnut chart
-				const ctxDoughnut = document.getElementById('requestsPerBotChart');
-				if (ctxDoughnut) {
-					new Chart(ctxDoughnut, {
-						type: 'doughnut',
-						data: {
-							labels: <?php echo wp_json_encode( $per_bot_data['labels'] ); ?>,
-							datasets: [{
-								data: <?php echo wp_json_encode( $per_bot_data['data'] ); ?>,
-								backgroundColor: <?php echo wp_json_encode( $doughnut_colors ); ?>,
-							}]
-						},
-						options: {
-							responsive: true,
-							animation: false,
-							plugins: {
-								legend: {
-									position: 'bottom',
-								},
-							}
-						}
-					});
-				}
-				// Stacked bar chart
-				const ctxBar = document.getElementById('requestsPerDayChart');
-				if (ctxBar) {
-					new Chart(ctxBar, {
-						type: 'bar',
-						data: {
-							labels: <?php echo wp_json_encode( $per_day_data['labels'] ); ?>,
-							datasets: <?php echo wp_json_encode( $per_day_data['datasets'] ); ?>
-						},
-						options: {
-							responsive: true,
-							animation: false,
-							scales: {
-								x: {
-									stacked: true,
-								},
-								y: {
-									stacked: true,
-								}
-							},
-							plugins: {
-								legend: {
-									position: 'bottom',
-								},
-							}
-						}
-					});
-				}
-			});
-			</script>
 			<?php
 	}
 
@@ -672,7 +679,7 @@ class AdminPage {
 	 */
 	public function clear_crawler_log(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You are not allowed to manage crawler insights.', 'aisignal-markdown-converter' ), '', array( 'response' => 403 ) );
+			wp_die( esc_html__( 'You are not allowed to manage crawler insights.', 'aisignal-markdown-converter' ), '', [ 'response' => 403 ] );
 		}
 
 		check_admin_referer( 'aisignal_markdown_converter_clear_crawler_log' );
@@ -680,11 +687,11 @@ class AdminPage {
 
 		wp_safe_redirect(
 			add_query_arg(
-				array(
+				[
 					'page'                => 'aisignal-markdown-converter',
 					'tab'                 => 'crawler-insights',
 					'crawler-log-cleared' => 1,
-				),
+				],
 				admin_url( 'options-general.php' )
 			)
 		);
@@ -701,7 +708,7 @@ class AdminPage {
 			add_meta_box(
 				'aisignal-markdown-converter-post-settings',
 				__( 'AISignal Markdown Converter', 'aisignal-markdown-converter' ),
-				array( $this, 'render_post_settings_meta_box' ),
+				[ $this, 'render_post_settings_meta_box' ],
 				$post_type,
 				'side',
 				'default'
@@ -791,23 +798,23 @@ class AdminPage {
 	 * @return array<string, array<string, mixed>>
 	 */
 	protected function get_general_setting_definitions(): array {
-		return array(
-			'aisignal_markdown_converter_enable_frontmatter' => array(
+		return [
+			'aisignal_markdown_converter_enable_frontmatter' => [
 				'type'              => 'boolean',
-				'sanitize_callback' => array( $this, 'sanitize_frontmatter_enabled' ),
+				'sanitize_callback' => [ $this, 'sanitize_frontmatter_enabled' ],
 				'default'           => false,
-			),
-			'aisignal_markdown_converter_post_types'       => array(
+			],
+			'aisignal_markdown_converter_post_types'       => [
 				'type'              => 'array',
-				'sanitize_callback' => array( $this, 'sanitize_markdown_post_types' ),
-				'default'           => array( 'post', 'page' ),
-			),
-			MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => array(
+				'sanitize_callback' => [ $this, 'sanitize_markdown_post_types' ],
+				'default'           => [ 'post', 'page' ],
+			],
+			MarkdownAvailability::OPTION_EXCLUDED_POST_IDS => [
 				'type'              => 'array',
-				'sanitize_callback' => array( $this, 'sanitize_excluded_post_ids' ),
-				'default'           => array(),
-			),
-		);
+				'sanitize_callback' => [ $this, 'sanitize_excluded_post_ids' ],
+				'default'           => [],
+			],
+		];
 	}
 
 	/**
@@ -816,18 +823,18 @@ class AdminPage {
 	 * @return array<string, array<string, mixed>>
 	 */
 	protected function get_crawler_setting_definitions(): array {
-		return array(
-			CrawlerInsights::OPTION_ENABLED        => array(
+		return [
+			CrawlerInsights::OPTION_ENABLED        => [
 				'type'              => 'boolean',
-				'sanitize_callback' => array( $this, 'sanitize_crawler_insights_enabled' ),
+				'sanitize_callback' => [ $this, 'sanitize_crawler_insights_enabled' ],
 				'default'           => false,
-			),
-			CrawlerInsights::OPTION_RETENTION_DAYS => array(
+			],
+			CrawlerInsights::OPTION_RETENTION_DAYS => [
 				'type'              => 'integer',
-				'sanitize_callback' => array( $this, 'sanitize_crawler_retention_days' ),
+				'sanitize_callback' => [ $this, 'sanitize_crawler_retention_days' ],
 				'default'           => 30,
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -836,9 +843,9 @@ class AdminPage {
 	 * @return array<int, \WP_Post_Type>
 	 */
 	protected function get_public_post_type_objects(): array {
-		$post_types = get_post_types( array( 'public' => true ), 'objects' );
+		$post_types = get_post_types( [ 'public' => true ], 'objects' );
 		if ( ! is_array( $post_types ) ) {
-			return array();
+			return [];
 		}
 
 		unset( $post_types['attachment'] );
@@ -857,5 +864,23 @@ class AdminPage {
 		}
 
 		return $this->crawler_insights;
+	}
+
+	/**
+	 * Determine whether the current admin screen is the plugin settings page.
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix.
+	 *
+	 * @return bool
+	 */
+	protected function is_plugin_settings_page( string $hook_suffix ): bool {
+		if ( 'settings_page_aisignal-markdown-converter' === $hook_suffix ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing check.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+
+		return 'aisignal-markdown-converter' === $page;
 	}
 }

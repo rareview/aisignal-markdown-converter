@@ -1,7 +1,7 @@
 {
     "name": "rareview/aisignal-markdown-converter",
     "description": "AISignal Markdown Converter WordPress plugin.",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "require": {
         "php": ">=8.0"
     },
