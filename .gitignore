@@ -1,7 +1,7 @@
 .idea
 AGENTS.md
 node_modules
-vendor
+/vendor
 /dist
 /scripts/
 /tests/
