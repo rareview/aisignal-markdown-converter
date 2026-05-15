@@ -60,6 +60,8 @@ The `Crawler Insights` tab provides:
 - `Total Requests`
 - `Requests Today`
 - `Unique Bots`
+- `Requests per Day` chart
+- `Requests per Bot` chart
 - bot filter dropdown
 - recent request log table
 - retention-day setting

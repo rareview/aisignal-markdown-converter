@@ -104,6 +104,8 @@ It also shows:
 - total retained requests
 - requests today
 - unique bots
+- requests-per-day chart
+- requests-per-bot chart
 - a bot filter
 - a recent request log
 - a one-click log clear action
