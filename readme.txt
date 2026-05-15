@@ -26,9 +26,7 @@ Features include:
 * alternate Markdown discovery through a head link and `Link` response header
 * optional YAML frontmatter for Markdown documents
 * post type controls and exclusion controls for Markdown availability
-* optional crawler insights with bot detection, request logging, retention, and filtering
-
-This plugin is best suited for evaluation and development use.
+* optional crawler insights with bot detection, request logging, request summary charts, retention, and filtering
 
 == Installation ==
 
@@ -73,7 +71,7 @@ When enabled, frontmatter includes fields such as title, URL, post type, publish
 
 = What does crawler insights log? =
 
-Crawler insights logs successful Markdown requests from detected bots when the feature is enabled. The request log shows timestamps, URLs, bot names, and request methods, and includes retention controls and filtering in the admin screen.
+Crawler insights logs successful Markdown requests from detected bots when the feature is enabled. The admin screen includes request summary charts, retained request totals, bot filtering, timestamps, URLs, bot names, request methods, and retention controls.
 
 == Privacy Policy ==
 

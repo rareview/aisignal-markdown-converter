@@ -64,7 +64,7 @@ The Markdown pipeline is intentionally small:
 - Compatible with many builder-based pages when content is present in rendered HTML
 - YAML frontmatter with featured image and public taxonomy names
 - Global and per-post Markdown exclusions
-- Bot-focused crawler insights with retention and filtering
+- Bot-focused crawler insights with request summary charts, retention, and filtering
 - WordPress hook/filter extensibility across discovery, availability, extraction, output, and crawler logging
 
 ## Documentation
