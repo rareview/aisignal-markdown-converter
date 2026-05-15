@@ -54,8 +54,8 @@ class CrawlerInsights {
 	 * @param BotDetector|null     $detector Detector dependency.
 	 */
 	public function __construct( ?RequestLogStore $store = null, ?BotDetector $detector = null ) {
-		$this->store    = $store ?: new RequestLogStore();
-		$this->detector = $detector ?: new BotDetector();
+		$this->store    = null === $store ? new RequestLogStore() : $store;
+		$this->detector = null === $detector ? new BotDetector() : $detector;
 
 		if ( ! self::$hooks_registered ) {
 			self::$hooks_registered = true;
@@ -97,7 +97,7 @@ class CrawlerInsights {
 	 */
 	public function sanitize_retention_days( $value ): int {
 		$retention = absint( $value );
-		return max( 1, $retention ?: 30 );
+		return max( 1, 0 === $retention ? 30 : $retention );
 	}
 
 	/**
@@ -174,7 +174,9 @@ class CrawlerInsights {
 	 * @return array<string, int>
 	 */
 	public function get_stats( ?DateTimeImmutable $now = null ): array {
-		$now = $now ?: $this->now();
+		if ( null === $now ) {
+			$now = $this->now();
+		}
 
 		return $this->store->get_stats(
 			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) ),
@@ -193,7 +195,9 @@ class CrawlerInsights {
 	 * @return array<string, mixed>
 	 */
 	public function get_logs( string $bot_key = '', int $page = 1, int $per_page = 25, ?DateTimeImmutable $now = null ): array {
-		$now = $now ?: $this->now();
+		if ( null === $now ) {
+			$now = $this->now();
+		}
 
 		return $this->store->get_logs(
 			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) ),
@@ -211,10 +215,47 @@ class CrawlerInsights {
 	 * @return array<int, array<string, string>>
 	 */
 	public function get_available_bots( ?DateTimeImmutable $now = null ): array {
-		$now = $now ?: $this->now();
+		if ( null === $now ) {
+			$now = $this->now();
+		}
 
 		return $this->store->get_available_bots(
 			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) )
+		);
+	}
+
+	/**
+	 * Return requests count per bot.
+	 *
+	 * @param DateTimeImmutable|null $now Site-local current time.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_requests_per_bot( ?DateTimeImmutable $now = null ): array {
+		if ( null === $now ) {
+			$now = $this->now();
+		}
+
+		return $this->store->get_requests_per_bot(
+			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) )
+		);
+	}
+
+	/**
+	 * Return requests count per day by bot.
+	 *
+	 * @param DateTimeImmutable|null $now Site-local current time.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_requests_per_day_by_bot( ?DateTimeImmutable $now = null ): array {
+		if ( null === $now ) {
+			$now = $this->now();
+		}
+
+		return $this->store->get_requests_per_day_by_bot(
+			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) ),
+			function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' )
 		);
 	}
 
@@ -226,7 +267,9 @@ class CrawlerInsights {
 	 * @return int
 	 */
 	public function prune_expired_logs( ?DateTimeImmutable $now = null ): int {
-		$now = $now ?: $this->now();
+		if ( null === $now ) {
+			$now = $this->now();
+		}
 
 		return $this->store->prune_before(
 			$this->to_gmt_mysql( $now->sub( new DateInterval( 'P' . $this->get_retention_days() . 'D' ) ) )
@@ -497,6 +540,8 @@ class CrawlerInsights {
 			return esc_url_raw( $url );
 		}
 
-		return filter_var( $url, FILTER_SANITIZE_URL ) ?: '';
+		$sanitized_url = filter_var( $url, FILTER_SANITIZE_URL );
+
+		return false === $sanitized_url ? '' : (string) $sanitized_url;
 	}
 }

@@ -7,6 +7,9 @@
 
 namespace AISignalMarkdownConverter\Inc\CrawlerInsights;
 
+use DateTimeImmutable;
+use DateTimeZone;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -39,7 +42,7 @@ class RequestLogStore {
 	public function __construct( $db = null, string $table_name = '' ) {
 		global $wpdb;
 
-		$this->wpdb       = $db ?: $wpdb;
+		$this->wpdb       = null === $db ? $wpdb : $db;
 		$this->table_name = '' !== $table_name ? $table_name : $this->resolve_table_name();
 	}
 
@@ -300,6 +303,127 @@ class RequestLogStore {
 		// phpcs:enable WordPress.DB.PreparedSQL
 
 		return false === $deleted ? 0 : (int) $deleted;
+	}
+
+	/**
+	 * Get requests count per bot.
+	 *
+	 * @param string $retention_cutoff_gmt Retention cutoff in GMT mysql format.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_requests_per_bot( string $retention_cutoff_gmt ): array {
+		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_results' ) ) {
+			return [];
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name is an internal identifier; dynamic values are passed through prepare().
+		$results = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				'SELECT bot_key, bot_label, COUNT(*) as count FROM %i WHERE occurred_at_gmt >= %s GROUP BY bot_key ORDER BY count DESC',
+				$this->table_name,
+				$retention_cutoff_gmt
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL
+
+		if ( ! is_array( $results ) ) {
+			return [];
+		}
+
+		return array_values(
+			array_filter(
+				array_map(
+					static function ( $row ): ?array {
+						if ( ! is_object( $row ) || empty( $row->bot_key ) ) {
+							return null;
+						}
+
+						return [
+							'bot_key'   => (string) $row->bot_key,
+							'bot_label' => (string) $row->bot_label,
+							'count'     => (int) $row->count,
+						];
+					},
+					$results
+				)
+			)
+		);
+	}
+
+	/**
+	 * Get requests count per day by bot.
+	 *
+	 * @param string       $retention_cutoff_gmt Retention cutoff in GMT mysql format.
+	 * @param DateTimeZone $timezone Site timezone used for daily bucketing.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_requests_per_day_by_bot( string $retention_cutoff_gmt, DateTimeZone $timezone ): array {
+		if ( ! is_object( $this->wpdb ) || ! method_exists( $this->wpdb, 'prepare' ) || ! method_exists( $this->wpdb, 'get_results' ) ) {
+			return [];
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL -- Table name is an internal identifier; dynamic values are passed through prepare().
+		$results = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				'SELECT occurred_at_gmt, bot_key, bot_label FROM %i WHERE occurred_at_gmt >= %s ORDER BY occurred_at_gmt ASC, bot_key ASC',
+				$this->table_name,
+				$retention_cutoff_gmt
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL
+
+		if ( ! is_array( $results ) ) {
+			return [];
+		}
+
+		$grouped = [];
+
+		foreach ( $results as $row ) {
+			if ( ! is_object( $row ) || empty( $row->occurred_at_gmt ) || empty( $row->bot_key ) ) {
+				continue;
+			}
+
+			try {
+				$occurred_at = new DateTimeImmutable( (string) $row->occurred_at_gmt, new DateTimeZone( 'UTC' ) );
+			} catch ( \Exception $exception ) {
+				unset( $exception );
+				continue;
+			}
+
+			$date    = $occurred_at->setTimezone( $timezone )->format( 'Y-m-d' );
+			$bot_key = (string) $row->bot_key;
+
+			if ( ! isset( $grouped[ $date ] ) ) {
+				$grouped[ $date ] = [];
+			}
+
+			if ( ! isset( $grouped[ $date ][ $bot_key ] ) ) {
+				$grouped[ $date ][ $bot_key ] = [
+					'date'      => $date,
+					'bot_key'   => $bot_key,
+					'bot_label' => '' !== (string) $row->bot_label ? (string) $row->bot_label : $bot_key,
+					'count'     => 0,
+				];
+			}
+
+			++$grouped[ $date ][ $bot_key ]['count'];
+		}
+
+		ksort( $grouped );
+
+		$flattened = [];
+
+		foreach ( $grouped as $entries ) {
+			ksort( $entries );
+
+			foreach ( $entries as $entry ) {
+				$flattened[] = $entry;
+			}
+		}
+
+		return $flattened;
 	}
 
 	/**

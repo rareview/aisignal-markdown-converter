@@ -15,6 +15,6 @@ renovate.json
 docs
 tests
 scripts
-vendor
+/vendor
 node_modules
 dist

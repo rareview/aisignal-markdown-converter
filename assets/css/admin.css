@@ -1,64 +1,76 @@
 .aisignal-markdown-converter-crawler-summary {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12px;
-	margin: 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 1rem 0;
+}
+
+.aisignal-markdown-converter-crawler-charts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 1rem 0;
 }
 
 .aisignal-markdown-converter-crawler-card {
-	flex: 1 1 220px;
-	min-width: 220px;
-	margin: 0;
+  flex: 1 1 220px;
+  min-width: 220px;
+  margin: 0;
+}
+
+.aisignal-markdown-converter-crawler-card-doughnut {
+  flex: 0 0 33%;
+  min-width: 220px;
 }
 
 .aisignal-markdown-converter-crawler-card .inside {
-	margin: 0;
-	padding-top: 16px;
-	padding-bottom: 16px;
+  margin: 0;
+  padding-top: 16px;
+  padding-bottom: 16px;
 }
 
 .aisignal-markdown-converter-crawler-card .description {
-	margin-top: 0;
+  margin-top: 0;
 }
 
 .aisignal-markdown-converter-crawler-stat {
-	margin: 0;
-	font-size: 32px;
-	line-height: 1.1;
-	font-weight: 600;
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 600;
 }
 
 .aisignal-markdown-converter-crawler-toolbar {
-	display: flex;
-	align-items: flex-end;
-	justify-content: space-between;
-	gap: 16px;
-	flex-wrap: wrap;
-	margin: 0 0 1rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
 }
 
 .aisignal-markdown-converter-crawler-filter {
-	display: flex;
-	align-items: flex-end;
-	gap: 8px;
-	flex-wrap: wrap;
-	margin: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
 }
 
 .aisignal-markdown-converter-crawler-filter-label {
-	display: block;
-	margin-bottom: 6px;
+  display: block;
+  margin-bottom: 6px;
 }
 
 .aisignal-markdown-converter-crawler-retention-note {
-	margin: 0;
-	flex: 1 1 240px;
+  margin: 0;
+  flex: 1 1 240px;
 }
 
 .aisignal-markdown-converter-crawler-clear-form {
-	margin: 0;
+  margin: 0;
 }
 
 .aisignal-markdown-converter-crawler-requests-heading {
-	margin-top: 2.5rem;
+  margin-top: 2.5rem;
 }

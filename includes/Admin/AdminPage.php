@@ -85,7 +85,7 @@ class AdminPage {
 	 * @return void
 	 */
 	public function enqueue_admin_assets( string $hook_suffix ): void {
-		if ( 'settings_page_aisignal-markdown-converter' !== $hook_suffix ) {
+		if ( ! $this->is_plugin_settings_page( $hook_suffix ) ) {
 			return;
 		}
 
@@ -94,6 +94,22 @@ class AdminPage {
 			plugins_url( 'assets/css/admin.css', AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE ),
 			[],
 			AISIGNAL_MARKDOWN_CONVERTER_VERSION
+		);
+
+		wp_enqueue_script(
+			'chartjs',
+			plugins_url( 'assets/js/vendor/chart.min.js', AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE ),
+			[],
+			'4.5.1',
+			true
+		);
+
+		wp_enqueue_script(
+			'aisignal-markdown-converter-admin-script',
+			plugins_url( 'assets/js/admin.js', AISIGNAL_MARKDOWN_CONVERTER_PLUGIN_FILE ),
+			[ 'chartjs' ],
+			AISIGNAL_MARKDOWN_CONVERTER_VERSION,
+			true
 		);
 	}
 
@@ -301,7 +317,7 @@ class AdminPage {
 											value="<?php echo esc_attr( $post_type->name ); ?>"
 											<?php checked( in_array( $post_type->name, $enabled_types, true ) ); ?>
 										/>
-										<?php echo esc_html( $post_type->labels->singular_name ?: $post_type->labels->name ); ?>
+										<?php echo esc_html( ! empty( $post_type->labels->singular_name ) ? $post_type->labels->singular_name : $post_type->labels->name ); ?>
 									</label><br />
 								<?php endforeach; ?>
 							</fieldset>
@@ -344,13 +360,119 @@ class AdminPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin UI state.
 		$selected_bot = isset( $_GET['bot'] ) ? sanitize_key( wp_unslash( (string) $_GET['bot'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin UI state.
-		$current_page   = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
-		$per_page       = 25;
-		$stats          = $service->get_stats();
-		$available_bots = $service->get_available_bots();
-		$log_result     = $service->get_logs( $selected_bot, $current_page, $per_page );
-		$total_pages    = max( 1, (int) ceil( ( (int) $log_result['total_items'] ) / $per_page ) );
-		$items          = isset( $log_result['items'] ) && is_array( $log_result['items'] ) ? $log_result['items'] : [];
+		$current_page            = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
+		$per_page                = 25;
+		$stats                   = $service->get_stats();
+		$available_bots          = $service->get_available_bots();
+		$log_result              = $service->get_logs( $selected_bot, $current_page, $per_page );
+		$total_pages             = max( 1, (int) ceil( ( (int) $log_result['total_items'] ) / $per_page ) );
+		$items                   = isset( $log_result['items'] ) && is_array( $log_result['items'] ) ? $log_result['items'] : [];
+		$requests_per_bot        = $service->get_requests_per_bot();
+		$requests_per_day_by_bot = $service->get_requests_per_day_by_bot();
+
+		// Prepare data for charts.
+		$per_bot_data = [
+			'labels' => array_column( $requests_per_bot, 'bot_label' ),
+			'data'   => array_column( $requests_per_bot, 'count' ),
+		];
+
+		// For bar chart.
+		$dates = array_unique( array_column( $requests_per_day_by_bot, 'date' ) );
+		sort( $dates );
+		$bots       = array_unique( array_column( $requests_per_day_by_bot, 'bot_key' ) );
+		$bot_labels = [];
+		foreach ( $bots as $bot_key ) {
+			$found = array_filter( $requests_per_day_by_bot, fn( $row ) => $row['bot_key'] === $bot_key );
+			if ( $found ) {
+				$bot_labels[ $bot_key ] = reset( $found )['bot_label'];
+			}
+		}
+		$colors = [ '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384' ];
+
+		// Assign consistent colors to bots.
+		$all_bot_keys = array_unique(
+			array_merge(
+				array_column( $requests_per_bot, 'bot_key' ),
+				array_column( $requests_per_day_by_bot, 'bot_key' )
+			)
+		);
+		sort( $all_bot_keys );
+		$bot_colors = [];
+		foreach ( $all_bot_keys as $index => $bot_key ) {
+			$bot_colors[ $bot_key ] = $colors[ $index % count( $colors ) ];
+		}
+
+		$datasets = [];
+		foreach ( $bots as $bot_key ) {
+			$data = [];
+			foreach ( $dates as $date ) {
+				$found  = array_filter( $requests_per_day_by_bot, fn( $row ) => $row['date'] === $date && $row['bot_key'] === $bot_key );
+				$data[] = $found ? reset( $found )['count'] : 0;
+			}
+			$datasets[] = [
+				'label'           => $bot_labels[ $bot_key ] ?? $bot_key,
+				'data'            => $data,
+				'backgroundColor' => $bot_colors[ $bot_key ] ?? '#C9CBCF',
+			];
+		}
+		$per_day_data = [
+			'labels'   => $dates,
+			'datasets' => $datasets,
+		];
+
+		// Doughnut colors in label order.
+		$bot_key_by_label = array_column( $requests_per_bot, 'bot_key', 'bot_label' );
+		$doughnut_colors  = [];
+		foreach ( $per_bot_data['labels'] as $label ) {
+			$bot_key           = $bot_key_by_label[ $label ] ?? '';
+			$doughnut_colors[] = $bot_colors[ $bot_key ] ?? '#C9CBCF';
+		}
+
+		$requests_per_bot_chart = [
+			'type'    => 'doughnut',
+			'data'    => [
+				'labels'   => $per_bot_data['labels'],
+				'datasets' => [
+					[
+						'data'            => $per_bot_data['data'],
+						'backgroundColor' => $doughnut_colors,
+					],
+				],
+			],
+			'options' => [
+				'responsive' => true,
+				'animation'  => false,
+				'plugins'    => [
+					'legend' => [
+						'position' => 'bottom',
+					],
+				],
+			],
+		];
+		$requests_per_day_chart = [
+			'type'    => 'bar',
+			'data'    => [
+				'labels'   => $per_day_data['labels'],
+				'datasets' => $per_day_data['datasets'],
+			],
+			'options' => [
+				'responsive' => true,
+				'animation'  => false,
+				'scales'     => [
+					'x' => [
+						'stacked' => true,
+					],
+					'y' => [
+						'stacked' => true,
+					],
+				],
+				'plugins'    => [
+					'legend' => [
+						'position' => 'bottom',
+					],
+				],
+			],
+		];
 		?>
 		<form action="options.php" method="post">
 				<?php settings_fields( self::OPTION_GROUP_CRAWLER ); ?>
@@ -434,8 +556,27 @@ class AdminPage {
 					</div>
 				</div>
 			</div>
+			<div class="aisignal-markdown-converter-crawler-charts">
+				<div class="aisignal-markdown-converter-crawler-card">
+					<h3><?php echo esc_html__( 'Requests per Day', 'aisignal-markdown-converter' ); ?></h3>
+					<canvas
+						id="requestsPerDayChart"
+						class="aisignal-markdown-converter-chart"
+						data-chart-config="<?php echo esc_attr( wp_json_encode( $requests_per_day_chart ) ); ?>"
+					></canvas>
+				</div>
+				<div class="aisignal-markdown-converter-crawler-card aisignal-markdown-converter-crawler-card-doughnut">
+					<h3><?php echo esc_html__( 'Requests per Bot', 'aisignal-markdown-converter' ); ?></h3>
+					<canvas
+						id="requestsPerBotChart"
+						class="aisignal-markdown-converter-chart"
+						data-chart-config="<?php echo esc_attr( wp_json_encode( $requests_per_bot_chart ) ); ?>"
+					></canvas>
+				</div>
+			</div>
 
-			<div class="tablenav top aisignal-markdown-converter-crawler-toolbar">
+				<h2 class="aisignal-markdown-converter-crawler-requests-heading"><?php echo esc_html__( 'Recent Markdown Requests', 'aisignal-markdown-converter' ); ?></h2>
+			<div class="aisignal-markdown-converter-crawler-toolbar">
 					<form method="get" class="aisignal-markdown-converter-crawler-filter">
 						<input type="hidden" name="page" value="aisignal-markdown-converter" />
 						<input type="hidden" name="tab" value="crawler-insights" />
@@ -467,7 +608,7 @@ class AdminPage {
 					action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 					method="post"
 					class="aisignal-markdown-converter-crawler-clear-form"
-					onsubmit="return confirm('<?php echo esc_attr__( 'Clear the entire crawler request log?', 'aisignal-markdown-converter' ); ?>');"
+					data-confirm-message="<?php echo esc_attr__( 'Clear the entire crawler request log?', 'aisignal-markdown-converter' ); ?>"
 				>
 					<input type="hidden" name="action" value="aisignal_markdown_converter_clear_crawler_log" />
 					<?php wp_nonce_field( 'aisignal_markdown_converter_clear_crawler_log' ); ?>
@@ -475,7 +616,6 @@ class AdminPage {
 				</form>
 			</div>
 
-				<h2 class="aisignal-markdown-converter-crawler-requests-heading"><?php echo esc_html__( 'Recent Markdown Requests', 'aisignal-markdown-converter' ); ?></h2>
 				<table class="widefat striped">
 					<thead>
 						<tr>
@@ -724,5 +864,23 @@ class AdminPage {
 		}
 
 		return $this->crawler_insights;
+	}
+
+	/**
+	 * Determine whether the current admin screen is the plugin settings page.
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix.
+	 *
+	 * @return bool
+	 */
+	protected function is_plugin_settings_page( string $hook_suffix ): bool {
+		if ( 'settings_page_aisignal-markdown-converter' === $hook_suffix ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing check.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+
+		return 'aisignal-markdown-converter' === $page;
 	}
 }
