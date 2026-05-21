@@ -2,9 +2,9 @@
 Contributors: rareview, pratikbarvaliya
 Tags: markdown, rest-api, headless, yaml, acf
 Requires at least: 6.5
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,6 @@ Crawler insights stores request metadata for detected bot traffic to successful 
 
 == Changelog ==
 
-= 1.0.3 =
+= 1.0.4 =
 
 * Current release
