@@ -4,7 +4,7 @@ Tags: markdown, rest-api, headless, yaml, acf
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,10 @@ Crawler insights stores request metadata for detected bot traffic to successful 
 
 == Changelog ==
 
-= 1.0.4 =
+= 1.0.5 =
 
 * Current release
+
+= 1.0.4 =
+
+* Confirmed compatibility with WordPress 7.0
